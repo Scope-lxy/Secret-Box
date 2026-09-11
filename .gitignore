@@ -22,3 +22,8 @@ miniprogram.zip
 /prototype/
 /achieved/
 /archive/
+
+# Local production operations manual
+/docs/deployment-1panel.md
+/admin/docs/deployment-1panel.md
+/release.zip
