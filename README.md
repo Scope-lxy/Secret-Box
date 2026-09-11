@@ -6,13 +6,12 @@
 
 ```text
 miniprogram/  微信小程序源码，可用微信开发者工具打开。
-admin/        后台管理面板、Node.js 服务端和部署文档。
+admin/        后台管理面板、Node.js 服务端和运行说明。
 ```
 
 ## 文档分工
 
 - 内容新增与批量导入：`admin/docs/content-import.md`。
-- 生产部署、验收和回滚：`admin/docs/deployment-1panel.md`。
 
 ## 本地运行
 
@@ -23,4 +22,4 @@ cd admin\server
 npm run dev
 ```
 
-小程序用微信开发者工具直接打开 `miniprogram/`。后台内容维护和生产操作见 `admin/docs/content-import.md`、`admin/docs/deployment-1panel.md`。
+小程序用微信开发者工具直接打开 `miniprogram/`。后台内容维护和导入规则见 `admin/docs/content-import.md`。

@@ -376,7 +376,6 @@ test('Secret Box 由 1Panel 管理反向代理，生产容器使用北京时间'
   const deployDirectory = path.resolve(__dirname, '../../deploy')
   const compose = fs.readFileSync(path.resolve(__dirname, '../../deploy/secretbox.1panel.compose.yaml'), 'utf8')
   const dockerfile = fs.readFileSync(path.resolve(__dirname, '../../deploy/secretbox.Dockerfile'), 'utf8')
-  const deployment = fs.readFileSync(path.resolve(__dirname, '../../docs/deployment-1panel.md'), 'utf8')
   assert.deepEqual(fs.readdirSync(deployDirectory).filter((fileName) => fileName.endsWith('.conf')), [])
   assert.match(compose, /TZ:\s*Asia\/Shanghai/)
   assert.match(compose, /^name:\s*secretbox/m)
@@ -388,9 +387,6 @@ test('Secret Box 由 1Panel 管理反向代理，生产容器使用北京时间'
   assert.match(dockerfile, /apk add --no-cache ffmpeg tzdata/)
   assert.match(dockerfile, /EXPOSE 3101/)
   assert.match(dockerfile, /127\.0\.0\.1:3101\/api\/health/)
-  assert.match(deployment, /Secret Box/)
-  assert.match(deployment, /1Panel/)
-  assert.match(deployment, /127\.0\.0\.1:3101/)
 })
 
 test('全局分享模板不能通过通用设置或单个小程序配置更新', () => {
