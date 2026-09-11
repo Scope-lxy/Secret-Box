@@ -1,0 +1,37 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+  <immersive-nav variant="articles" title="{{hero}}" hero="{{true}}"></immersive-nav>
+  <view class="page article-feed">
+    <block wx:for="{{items}}" wx:key="id">
+      <view class="article-card article-card--{{item.cardLayout}} {{item.coverUrl ? '' : 'article-card--no-cover'}}" data-id="{{item.id}}" hover-class="article-card--pressed" bindtap="openArticle">
+      <view wx:if="{{item.coverUrl}}" class="article-card-media">
+        <image class="article-card-cover" src="{{item.coverUrl}}" mode="aspectFill" lazy-load="{{true}}" data-index="{{index}}" data-src="{{item.coverUrl}}" binderror="handleCoverError"></image>
+        <view wx:if="{{item.cardLayout == 'stacked' && (item.author || item.likeCount || item.favoriteCount)}}" class="article-card-media-gradient"></view>
+        <view wx:if="{{item.cardLayout == 'stacked' && (item.author || item.likeCount || item.favoriteCount)}}" class="article-card-meta article-card-meta--overlay">
+          <text wx:if="{{item.author}}" class="article-card-author">{{item.author}}</text>
+          <view wx:if="{{item.likeCount}}" class="article-card-stat" aria-label="点赞 {{item.likeCount}}"><text>赞 {{item.likeCount}}</text></view>
+          <view wx:if="{{item.favoriteCount}}" class="article-card-stat" aria-label="收藏 {{item.favoriteCount}}"><text>藏 {{item.favoriteCount}}</text></view>
+        </view>
+      </view>
+      <view class="article-card-copy">
+        <text class="article-card-title">{{item.title}}</text>
+        <view wx:if="{{item.cardLayout == 'title-left' || !item.coverUrl}}" class="article-card-meta">
+          <text class="article-card-author">{{item.author || '轻读手记'}}</text>
+          <view wx:if="{{item.likeCount}}" class="article-card-stat" aria-label="点赞 {{item.likeCount}}"><text>赞 {{item.likeCount}}</text></view>
+          <view wx:if="{{item.favoriteCount}}" class="article-card-stat" aria-label="收藏 {{item.favoriteCount}}"><text>藏 {{item.favoriteCount}}</text></view>
+        </view>
+      </view>
+      </view>
+      <view wx:if="{{item.showNativeAdAfter && ads.articlesNative.enabled && ads.articlesNative.adUnitId}}" hidden="{{nativeAdHidden}}" class="card ad-card native-template-ad {{nativeAdReady ? '' : 'native-template-ad--loading'}} {{nativeAdHidden ? 'native-template-ad--hidden' : ''}}">
+        <ad-custom unit-id="{{ads.articlesNative.adUnitId}}" bindload="handleNativeAdLoad" binderror="handleNativeAdError"></ad-custom>
+      </view>
+    </block>
+
+    <view wx:if="{{!items.length && ready && !error}}" class="empty-state stack">
+      <image class="empty-icon" src="/assets/icons/empty-document.svg"></image>
+      <text class="title-md">还没有文章</text>
+      <text class="muted">正在准备，敬请期待</text>
+    </view>
+    <loading-state wx:if="{{showSkeleton}}" rows="3" row-width="100%, 86%, 64%" label="正在加载"></loading-state>
+    <view wx:if="{{error && !loading}}" class="card state-card"><text class="muted">{{error}}</text></view>
+  </view>
+</view>

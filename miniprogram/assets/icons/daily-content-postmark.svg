@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-labelledby="title">
+  <title id="title">轻读手记今日邮戳</title>
+  <defs>
+    <path id="postmark-top-arc" d="M26.5 54a27.5 27.5 0 0 1 55 0"/>
+  </defs>
+  <g fill="none" stroke="#A66B42" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" opacity=".68">
+    <circle cx="54" cy="54" r="42"/>
+    <circle cx="54" cy="54" r="36"/>
+    <path d="M34 56h40" stroke-linecap="butt"/>
+  </g>
+  <g fill="#A66B42" font-family="Georgia, 'Songti SC', STSong, SimSun, serif" font-weight="500" text-anchor="middle" opacity=".68">
+    <text font-size="6.6"><textPath href="#postmark-top-arc" startOffset="50%">轻读手记 · Secret Box</textPath></text>
+    <text x="54" y="52" font-size="11.2">等你亲启</text>
+    <text x="54" y="69.5" font-size="8.2">TODAY</text>
+    <text x="54" y="81" font-size="8.2">FOR YOU</text>
+  </g>
+</svg>

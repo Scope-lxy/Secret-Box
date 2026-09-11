@@ -1,0 +1,17 @@
+<view class="custom-tabbar {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}" style="grid-template-columns: repeat({{visibleItems.length}}, minmax(0, 1fr));">
+  <view wx:for="{{visibleItems}}" wx:key="pagePath" class="tab-item-wrap">
+    <button
+      class="tab-item {{selectedKey === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      data-path="{{item.pagePath}}"
+      bindtap="switchTab"
+    >
+      <image
+        class="tab-icon"
+        mode="aspectFit"
+        src="{{selectedKey === item.key ? item.activeIcon : item.icon}}"
+      ></image>
+      <text class="tab-label">{{item.text}}</text>
+    </button>
+  </view>
+</view>

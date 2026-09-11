@@ -1,0 +1,4 @@
+<view class="reference-card reference-article history-article-layout {{item.coverUrl ? '' : 'history-article-layout--no-cover'}}">
+  <view wx:if="{{item.coverUrl}}" class="reference-article-media history-article-media"><image class="reference-article-cover history-article-cover" src="{{item.coverUrl}}" mode="aspectFill"></image></view>
+  <view class="reference-article-copy history-article-copy"><text class="reference-article-title history-article-title">{{item.title || item.targetPreview}}</text></view>
+</view>

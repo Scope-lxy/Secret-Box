@@ -1,0 +1,142 @@
+@import '../articles/articles.wxss';
+
+.article-page,
+.article-main,
+.article-intro,
+.article-header,
+.recommend-section,
+.recommend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.article-main {
+  gap: var(--card-content-gap);
+}
+
+.article-intro {
+  gap: 20rpx;
+}
+
+.article-flow,
+.article-body-followup,
+.article-media-flow {
+  display: flex;
+  flex-direction: column;
+}
+
+.article-flow {
+  gap: var(--space-4);
+}
+
+.article-body-followup {
+  gap: 0;
+}
+
+.article-media-flow {
+  gap: var(--article-content-gap);
+  padding: var(--article-media-start-gap) 0 var(--article-media-end-gap);
+}
+
+/* Hidden ad slots are not part of the visible flow. */
+.article-media-flow > .article-media-block--hidden + .article-media-block,
+.article-media-flow > .article-media-block + .article-media-block--hidden {
+  margin-top: 0;
+}
+
+.article-interactions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-content-gap);
+}
+
+.article-header {
+  gap: var(--space-2);
+}
+
+.article-title {
+  color: var(--color-text);
+  font-size: var(--type-article-detail-title);
+  font-weight: 700;
+  line-height: 1.38;
+}
+
+.article-ad {
+  /* 内部模板留白由微信控制，外层不叠加 padding，避免出现双重间距。 */
+  padding: 0;
+  overflow: hidden;
+}
+
+.article-media-block {
+  margin: 0;
+}
+
+.article-rich-text {
+  box-sizing: border-box;
+  width: 100%;
+  display: block;
+  padding: 0;
+  color: var(--color-text);
+  font-size: var(--type-body);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.article-header-meta {
+  justify-content: flex-start;
+  font-size: var(--type-article-detail-meta);
+  font-weight: 400;
+}
+
+.article-published-at {
+  flex: 0 0 auto;
+}
+
+.article-preview-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 32rpx;
+}
+
+.article-preview {
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.article-preview-fade {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 144rpx;
+  margin-top: -144rpx;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--color-bg) 68%, var(--color-bg) 100%);
+}
+
+.article-expand {
+  position: relative;
+  z-index: 2;
+  width: calc(100% - 64rpx);
+  min-height: 88rpx;
+  margin: -6rpx 32rpx 0;
+  font-size: var(--type-section);
+}
+
+.recommend-section {
+  gap: 20rpx;
+}
+
+.recommend-title {
+  color: var(--color-text);
+  font-size: var(--type-title);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.recommend-list {
+  gap: var(--card-gap);
+}

@@ -1,0 +1,26 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+<immersive-nav variant="plain" title="{{messagesEnabled ? '我的留言' : ''}}" show-title="{{messagesEnabled}}" back="{{true}}"></immersive-nav>
+<view wx:if="{{messagesEnabled}}" class="page plain-page">
+  <block wx:for="{{items}}" wx:for-index="itemIndex" wx:key="id">
+    <view class="card history-card">
+      <view class="history-meta"><text class="type-badge">{{item.type}}</text><text class="history-time">{{item.time}}</text></view>
+      <view class="message-body message-own"><expandable-text text="{{item.preview}}" paragraphs="{{item.previewParagraphs}}"></expandable-text></view>
+      <view wx:if="{{item.isAlbum && item.images.length || item.isAudio || item.isArticle || item.targetPreview}}" class="message-reference">
+      <message-reference-article wx:if="{{item.isArticle}}" item="{{item}}"></message-reference-article>
+      <message-reference-album wx:elif="{{item.isAlbum}}" item="{{item}}" data-item-index="{{itemIndex}}" bind:preview="previewMessageImage"></message-reference-album>
+      <message-reference-audio wx:elif="{{item.isAudio}}" item="{{item}}" bind:toggle="toggleHistoryAudio"></message-reference-audio>
+      <message-reference-text wx:if="{{item.targetPreview && !item.isAlbum && !item.isAudio && !item.isArticle}}" text="{{item.targetPreview}}"></message-reference-text></view>
+    </view>
+    <view wx:if="{{item.showNativeAdAfter && ads.mineNative.enabled && ads.mineNative.adUnitId}}" hidden="{{nativeAdHidden}}" class="card ad-card native-template-ad {{nativeAdReady ? '' : 'native-template-ad--loading'}} {{nativeAdHidden ? 'native-template-ad--hidden' : ''}}">
+      <ad-custom unit-id="{{ads.mineNative.adUnitId}}" bindload="handleNativeAdLoad" binderror="handleNativeAdError"></ad-custom>
+    </view>
+  </block>
+  <view wx:if="{{!items.length && ready && !error}}" class="empty-state stack">
+    <image class="empty-icon" src="/assets/icons/empty-message.svg"></image>
+    <text class="title-md">还没有留言</text>
+    <text class="muted">你发布过的留言会出现在这里</text>
+  </view>
+  <loading-state wx:if="{{showSkeleton}}" rows="3" row-width="100%, 82%, 64%" label="正在加载"></loading-state>
+  <view wx:if="{{error && !loading}}" class="card state-card"><text class="muted">{{error}}</text></view>
+</view>
+</view>

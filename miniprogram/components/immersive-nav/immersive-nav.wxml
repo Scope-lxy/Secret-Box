@@ -1,0 +1,13 @@
+<view wx:if="{{back}}" class="immersive-nav-placeholder" style="height: {{navTotalHeight}}px;"></view>
+<view class="immersive-nav immersive-nav--{{variant}} {{back ? 'immersive-nav--fixed' : ''}} {{refreshing ? 'immersive-nav--refreshing' : ''}}">
+  <view class="status-space" style="height: {{statusBarHeight}}px;"></view>
+  <view class="nav-row" style="height: {{navHeight}}px; padding-right: {{rightPadding}}px;">
+    <view wx:if="{{back}}" class="back-btn" hover-class="back-btn--pressed" bindtap="handleBack" aria-label="返回">
+      <image class="back-icon" src="/assets/icons/chevron-left.svg" mode="aspectFit"></image>
+    </view>
+    <text wx:if="{{showTitle}}" class="nav-title">{{title}}</text>
+  </view>
+  <view wx:if="{{hero}}" class="immersive-hero">
+    <text class="immersive-hero-title">{{title}}</text>
+  </view>
+</view>

@@ -1,0 +1,68 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/articles/articles",
+    "pages/article/article",
+    "pages/letters/letters",
+    "pages/mine/mine",
+    "pages/settings/settings",
+    "pages/profile/profile",
+    "pages/messages/messages",
+    "pages/favorites/favorites",
+    "pages/interactions/interactions",
+    "pages/opened-history/opened-history",
+    "pages/legal/agreement/agreement",
+    "pages/preferences/subscription/subscription"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "轻读手记",
+    "navigationBarBackgroundColor": "#fffaf2",
+    "backgroundColor": "#f6efe6"
+  },
+  "networkTimeout": {
+    "request": 15000
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#9b8264",
+    "selectedColor": "#a66b42",
+    "backgroundColor": "#fffaf2",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "assets/icons/tab-home.png",
+        "selectedIconPath": "assets/icons/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/articles/articles",
+        "text": "文章",
+        "iconPath": "assets/icons/tab-articles.png",
+        "selectedIconPath": "assets/icons/tab-articles-active.png"
+      },
+      {
+        "pagePath": "pages/letters/letters",
+        "text": "心笺",
+        "iconPath": "assets/icons/tab-letters.png",
+        "selectedIconPath": "assets/icons/tab-letters-active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "assets/icons/tab-profile.png",
+        "selectedIconPath": "assets/icons/tab-profile-active.png"
+      }
+    ]
+  },
+  "usingComponents": {
+    "immersive-nav": "/components/immersive-nav/immersive-nav",
+    "loading-state": "/components/loading-state/loading-state",
+    "skeleton": "/components/skeleton/skeleton"
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

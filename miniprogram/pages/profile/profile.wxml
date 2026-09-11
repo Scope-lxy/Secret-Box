@@ -1,0 +1,30 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+<immersive-nav variant="plain" title="个人资料" show-title="{{true}}" back="{{true}}"></immersive-nav>
+<view class="page plain-page profile-page">
+  <form bindsubmit="handleSave">
+    <view class="profile-form">
+      <view class="settings-list profile-form-list">
+        <view class="profile-cell profile-cell-avatar">
+          <text class="profile-cell-label">头像</text>
+          <button class="avatar avatar-picker" open-type="chooseAvatar" bindchooseavatar="handleChooseAvatar" loading="{{uploadingAvatar}}" disabled="{{uploadingAvatar}}"><image wx:if="{{form.avatarUrl}}" class="avatar-image" mode="aspectFill" src="{{form.avatarUrl}}"></image><text wx:else>{{form.avatarText || '你'}}</text></button>
+        </view>
+        <view class="profile-cell">
+          <text class="profile-cell-label">昵称</text>
+          <input class="profile-input" name="nickname" type="nickname" placeholder="填写昵称" value="{{form.nickname}}" bindinput="handleNicknameInput" />
+        </view>
+        <view class="profile-cell">
+          <text class="profile-cell-label">手机号</text>
+          <button class="profile-phone-button" open-type="getPhoneNumber" bindgetphonenumber="handleGetPhoneNumber">
+            <text>{{form.phone || '未授权'}}</text>
+            <text class="profile-phone-action">{{form.phone ? '重新获取' : '快速授权'}}</text>
+          </button>
+        </view>
+      </view>
+      <button class="button-primary save-button" loading="{{saving}}" disabled="{{saving}}" form-type="submit">保存</button>
+    </view>
+  </form>
+
+  <view wx:if="{{error}}" class="card state-card"><text class="muted">{{error}}</text></view>
+  <canvas id="avatarProcessingCanvas" canvas-id="avatarProcessingCanvas" type="2d" class="avatar-processing-canvas"></canvas>
+</view>
+</view>

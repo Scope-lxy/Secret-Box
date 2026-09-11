@@ -1,0 +1,29 @@
+.expandable-text__toggle {
+  box-sizing: border-box;
+  width: 2.25em;
+  color: var(--color-accent-dark);
+  background: var(--color-card);
+  font-size: var(--type-body);
+  line-height: 1.5;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.expandable-text__toggle::before {
+  position: absolute;
+  right: 100%;
+  bottom: 0;
+  width: 1.75em;
+  height: 1.5em;
+  background: linear-gradient(90deg, transparent, var(--color-card));
+  content: '';
+  pointer-events: none;
+}
+
+.expandable-text__toggle.is-expanded {
+  background: transparent;
+}
+
+.expandable-text__toggle.is-expanded::before {
+  display: none;
+}

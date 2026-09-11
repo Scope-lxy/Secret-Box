@@ -1,0 +1,68 @@
+@import '../../styles/expand-toggle.wxss';
+
+.expandable-text {
+  position: relative;
+  min-width: 0;
+  /* Hidden measurement text must not extend the page's scrollable area. */
+  overflow: hidden;
+}
+
+.expandable-text.is-expanded,
+.expandable-text__paragraphs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.expandable-text__copy,
+.expandable-text__measure {
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-body);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.expandable-text__copy {
+  display: block;
+}
+
+.expandable-text__copy.is-collapsed,
+.expandable-text__measure--collapsed {
+  display: block;
+  overflow: hidden;
+  max-height: 3em;
+}
+
+.expandable-text__copy.is-collapsed {
+  text-align: justify;
+  text-justify: inter-character;
+}
+
+.expandable-text__toggle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+}
+
+.expandable-text__toggle.is-expanded {
+  position: static;
+  align-self: flex-end;
+  width: auto;
+}
+
+.expandable-text__measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.expandable-text__measure--full {
+  display: block;
+}

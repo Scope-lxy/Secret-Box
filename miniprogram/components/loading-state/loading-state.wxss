@@ -1,0 +1,48 @@
+.loading-state {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 28rpx;
+  width: 100%;
+  min-height: 196rpx;
+  padding: 32rpx;
+  border: 1rpx solid rgba(190, 157, 123, 0.18);
+  border-radius: var(--card-radius, 24rpx);
+  background: linear-gradient(145deg, rgba(255, 252, 247, 0.98), rgba(248, 239, 229, 0.94));
+  box-shadow: 0 14rpx 36rpx rgba(91, 63, 40, 0.06);
+}
+
+.loading-state-heading {
+  display: flex;
+  align-items: center;
+}
+
+.loading-state-label {
+  color: var(--color-text-secondary, #876f5c);
+  font-size: var(--type-control, 26rpx);
+  line-height: 1.4;
+}
+
+.loading-state-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.loading-state-line {
+  height: 24rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(100deg, #ebdfd2 20%, #f8f1e9 42%, #ebdfd2 64%);
+  background-size: 260% 100%;
+  animation: loading-state-shimmer 1.6s ease-in-out infinite;
+}
+
+.loading-state-line:first-child {
+  height: 30rpx;
+}
+
+@keyframes loading-state-shimmer {
+  0% { background-position: 100% 0; opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { background-position: -100% 0; opacity: 0.7; }
+}

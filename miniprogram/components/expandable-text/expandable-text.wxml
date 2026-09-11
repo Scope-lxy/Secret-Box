@@ -1,0 +1,12 @@
+<view class="expandable-text {{expanded ? 'is-expanded' : ''}}">
+  <text wx:if="{{!expanded}}" class="expandable-text__copy is-collapsed">{{content}}</text>
+  <view wx:else class="expandable-text__paragraphs">
+    <block wx:if="{{paragraphs.length}}">
+      <text wx:for="{{paragraphs}}" wx:key="*this" class="expandable-text__copy">{{item}}</text>
+    </block>
+    <text wx:else class="expandable-text__copy">{{text}}</text>
+  </view>
+  <text wx:if="{{showToggle}}" class="expandable-text__toggle {{expanded ? 'is-expanded' : ''}}" aria-role="button" aria-label="{{expanded ? '收起' : '展开'}}" bindtap="toggleExpanded">{{expanded ? '收起' : '展开'}}</text>
+  <text class="expandable-text__measure expandable-text__measure--full">{{content}}</text>
+  <text class="expandable-text__measure expandable-text__measure--collapsed">{{content}}</text>
+</view>

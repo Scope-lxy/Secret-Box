@@ -1,0 +1,115 @@
+.immersive-nav {
+  --color-text: #493829;
+  --page-padding: 24rpx;
+  --space-6: 48rpx;
+  position: relative;
+  z-index: 2;
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at 82% 35%, rgba(255, 255, 255, 0.24), transparent 28%),
+    linear-gradient(155deg, #fff0d9 0%, #f1c79e 46%, #d49a68 100%);
+}
+
+.immersive-nav--fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.immersive-nav--fixed.immersive-nav--refreshing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.immersive-nav--fixed.immersive-nav--plain {
+  background: #fffaf2;
+}
+
+.immersive-nav-placeholder {
+  width: 100%;
+}
+
+.immersive-nav--letters {
+  background:
+    radial-gradient(circle at 78% 30%, rgba(255, 255, 255, 0.22), transparent 27%),
+    linear-gradient(155deg, #edf5ec 0%, #c8dfc4 48%, #91bd9a 100%);
+}
+
+.immersive-nav--articles {
+  background:
+    radial-gradient(circle at 76% 34%, rgba(255, 255, 255, 0.24), transparent 27%),
+    linear-gradient(155deg, #dcecff 0%, #9fc4e8 48%, #5f95c8 100%);
+}
+
+.immersive-nav--mine,
+.immersive-nav--plain {
+  background: rgba(255, 250, 242, 0.92);
+}
+
+.status-space {
+  width: 100%;
+}
+
+.nav-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.back-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+.back-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.back-btn--pressed {
+  background: rgba(255, 250, 242, 0.56);
+}
+
+.nav-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: 360rpx;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--type-nav-title);
+  font-weight: 650;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+
+.immersive-hero {
+  padding: 28rpx var(--space-6) 24rpx;
+  display: flex;
+  align-items: flex-start;
+}
+
+.immersive-hero-title {
+  color: var(--color-text);
+  font-size: var(--type-hero);
+  font-weight: 700;
+  line-height: 1.3;
+}

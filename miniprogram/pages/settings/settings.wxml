@@ -1,0 +1,30 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+<immersive-nav variant="plain" title="设置" show-title="{{true}}" back="{{true}}"></immersive-nav>
+<view class="page plain-page settings-page">
+  <view class="settings-list">
+    <view class="settings-item" hover-class="settings-item--pressed" bindtap="goProfile"><text>个人资料</text><view class="arrow"></view></view>
+    <view class="settings-item">
+      <text>字体大小</text>
+      <picker mode="selector" range="{{fontSizeOptions}}" value="{{fontSizeModeIndex}}" bindchange="handleFontSizeChange">
+        <view class="row"><text class="settings-value">{{fontSizeOptions[fontSizeModeIndex]}}</text><view class="arrow"></view></view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="settings-list">
+    <view class="settings-item" hover-class="settings-item--pressed" bindtap="openOfficialPrivacy"><text>隐私政策</text><view class="arrow"></view></view>
+    <view class="settings-item" hover-class="settings-item--pressed" data-url="/pages/legal/agreement/agreement" bindtap="navigate"><text>用户协议</text><view class="arrow"></view></view>
+  </view>
+
+  <view wx:if="{{showDataSourceSelector}}" class="settings-list">
+    <view class="settings-item">
+      <text>开发数据源</text>
+      <picker mode="selector" range="{{dataSources}}" range-key="label" value="{{dataSourceIndex}}" bindchange="handleDataSourceChange">
+        <view class="row"><text class="settings-value">{{dataSources[dataSourceIndex].label}}</text><view class="arrow"></view></view>
+      </picker>
+    </view>
+  </view>
+
+  <button class="button-secondary settings-delete-button" bindtap="requestDelete">注销账号</button>
+</view>
+</view>

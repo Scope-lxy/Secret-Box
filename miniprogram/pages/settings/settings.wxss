@@ -1,0 +1,19 @@
+.settings-page {
+  padding-bottom: calc(80rpx + var(--space-6) + var(--space-3) + env(safe-area-inset-bottom));
+}
+
+.settings-delete-button {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  z-index: 20;
+  width: 320rpx;
+  max-width: calc(100% - var(--space-6));
+  transform: translateX(-50%);
+}
+
+.settings-value {
+  color: var(--color-text-hint);
+  font-size: var(--type-settings-item);
+  line-height: 1.45;
+}

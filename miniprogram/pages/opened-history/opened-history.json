@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "累计打开",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "expandable-text": "/components/expandable-text/expandable-text"
+  }
+}

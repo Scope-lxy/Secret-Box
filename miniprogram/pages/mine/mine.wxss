@@ -1,0 +1,68 @@
+.profile-head {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 28rpx;
+  align-items: center;
+}
+
+.avatar {
+  width: 112rpx;
+  height: 112rpx;
+  min-width: 112rpx;
+  flex: 0 0 112rpx;
+  padding: 0;
+  border-radius: 56rpx;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+  font-size: var(--type-metric);
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.avatar-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.profile-copy {
+  width: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.profile-copy .title-lg,
+.settings-link {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-link {
+  color: var(--color-text-secondary);
+  font-size: var(--type-control);
+  line-height: 1.4;
+}
+
+.profile-copy .title-lg {
+  font-size: var(--type-metric);
+  font-weight: 600;
+}
+
+.section-title {
+  color: var(--color-text-secondary);
+  font-size: var(--type-section);
+  font-weight: 600;
+}
+
+.history-album-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

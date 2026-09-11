@@ -1,0 +1,53 @@
+{
+  "items": [
+    {
+      "id": "img-001",
+      "label": "图册图片 01",
+      "status": "ready",
+      "thumbUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII=",
+      "mediumUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII="
+    },
+    {
+      "id": "img-002",
+      "label": "图册图片 02",
+      "status": "ready",
+      "thumbUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII=",
+      "mediumUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII="
+    },
+    {
+      "id": "img-003",
+      "label": "图册图片 03",
+      "status": "ready",
+      "thumbUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII=",
+      "mediumUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII="
+    },
+    {
+      "id": "article-cover-001",
+      "label": "文章封面 01",
+      "status": "ready",
+      "thumbUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII=",
+      "mediumUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII="
+    },
+    {
+      "id": "article-cover-002",
+      "label": "文章封面 02",
+      "status": "ready",
+      "thumbUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII=",
+      "mediumUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII="
+    },
+    {
+      "id": "article-cover-003",
+      "label": "文章封面 03",
+      "status": "ready",
+      "thumbUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII=",
+      "mediumUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9N9pQAAAAASUVORK5CYII="
+    },
+    {
+      "id": "svg-img-001",
+      "label": "SVG 图片",
+      "status": "ready",
+      "thumbUrl": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E",
+      "mediumUrl": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
+    }
+  ]
+}

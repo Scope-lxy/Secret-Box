@@ -1,0 +1,3 @@
+<view class="reference-card">
+  <text class="reference-text">{{text}}</text>
+</view>

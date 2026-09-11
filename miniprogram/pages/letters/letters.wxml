@@ -1,0 +1,56 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+<immersive-nav variant="letters" title="{{hero}}" hero="{{true}}"></immersive-nav>
+<view class="page">
+  <block wx:for="{{items}}" wx:key="id">
+    <view class="card feed-card action-bar-surface">
+      <view class="paragraph-list">
+        <text wx:for="{{item.contentParagraphs}}" wx:key="*this" class="content-text">{{item}}</text>
+      </view>
+      <view wx:if="{{messagesEnabled && item.myMessage}}" class="message-box">
+        <view class="message-box-header">
+          <text class="message-label">我的留言</text>
+          <text class="message-label message-delete {{item.messageDeleting ? 'is-disabled' : ''}}" data-index="{{index}}" aria-role="button" aria-label="{{item.messageDeleting ? '正在删除留言' : '删除留言'}}" aria-disabled="{{item.messageDeleting}}" bindtap="handleDeleteMessage">删除</text>
+        </view>
+        <text class="message-text">{{item.myMessage}}</text>
+      </view>
+      <view wx:if="{{messagesEnabled && item.messageVisible}}" class="message-box">
+        <textarea class="message-input" auto-height maxlength="-1" placeholder="写下你想说的话…" placeholder-class="message-input-placeholder" data-index="{{index}}" value="{{item.messageText}}" bindinput="handleMessageInput"></textarea>
+        <view class="message-input-row">
+          <text class="message-label">留言仅你和对方可见</text>
+          <button class="message-submit {{item.messageSubmitting ? 'is-loading' : ''}}" data-index="{{index}}" aria-label="{{item.messageSubmitting ? '正在提交留言' : '确认留言'}}" disabled="{{item.messageSubmitting || !item.messageText.length}}" bindtap="handleSubmitMessage"><view wx:if="{{item.messageSubmitting}}" class="button-loading-dots button-loading-dots--light"><view></view><view></view><view></view></view><text wx:else>确认</text></button>
+        </view>
+      </view>
+      <view class="action-bar">
+        <button class="action-pill action-button {{item.liked ? 'active' : ''}}" hover-class="action-pill--pressed" data-index="{{index}}" bindtap="toggleLike"><image class="action-icon" src="{{item.liked ? '/assets/icons/action-heart-active.svg' : '/assets/icons/action-heart.svg'}}"></image><text>{{item.displayLikeCount || '点赞'}}</text></button>
+        <button class="action-pill action-button {{item.favorited ? 'active' : ''}}" hover-class="action-pill--pressed" data-index="{{index}}" bindtap="toggleFavorite"><image class="action-icon" src="{{item.favorited ? '/assets/icons/action-bookmark-active.svg' : '/assets/icons/action-bookmark.svg'}}"></image><text>{{item.displayFavoriteCount || '收藏'}}</text></button>
+        <button wx:if="{{messagesEnabled}}" class="action-pill action-button" data-index="{{index}}" bindtap="toggleMessage"><image class="action-icon" src="/assets/icons/action-message.svg"></image><text>留言</text></button>
+        <button class="action-pill action-button" open-type="share" data-index="{{index}}"><image class="action-icon" src="/assets/icons/action-share.svg"></image><text>分享</text></button>
+      </view>
+    </view>
+    <view wx:if="{{item.showNativeAdAfter && ads.lettersNative.enabled && ads.lettersNative.adUnitId}}" hidden="{{nativeAdHidden}}" class="card ad-card native-template-ad {{nativeAdReady ? '' : 'native-template-ad--loading'}} {{nativeAdHidden ? 'native-template-ad--hidden' : ''}}">
+      <ad-custom unit-id="{{ads.lettersNative.adUnitId}}" bindload="handleNativeAdLoad" binderror="handleNativeAdError"></ad-custom>
+    </view>
+  </block>
+
+  <view wx:if="{{!items.length && ready && !error}}" class="empty-state stack">
+    <image class="empty-icon" src="/assets/icons/empty-document.svg"></image>
+    <text class="title-md">还没有内容</text>
+    <text class="muted">正在准备，敬请期待</text>
+  </view>
+  <loading-state wx:if="{{showSkeleton}}" rows="3" row-width="100%, 90%, 82%" label="正在加载"></loading-state>
+  <view wx:if="{{error && !loading}}" class="card state-card"><text class="muted">{{error}}</text></view>
+</view>
+  <view wx:if="{{phoneSyncPromptVisible}}" class="phone-sync-prompt-overlay" catchtouchmove="preventPhoneSyncPromptScroll">
+    <view class="phone-sync-prompt-sheet" role="dialog" aria-modal="true" aria-label="同步你的记录">
+      <view class="phone-sync-prompt-copy">
+        <text class="phone-sync-prompt-title">手机号快捷登录</text>
+        <text class="phone-sync-prompt-text">完成手机号快捷登录后，可在多个小程序中同步你的记录。</text>
+      </view>
+      <view class="phone-sync-prompt-actions">
+        <button class="phone-sync-prompt-button phone-sync-prompt-decline" disabled="{{phoneSyncAuthorizing}}" bindtap="handlePhoneSyncDecline">暂不</button>
+        <button class="phone-sync-prompt-button phone-sync-prompt-authorize" loading="{{phoneSyncAuthorizing}}" disabled="{{phoneSyncAuthorizing}}" open-type="getPhoneNumber" bindgetphonenumber="handlePhoneSyncAuthorize">同意并继续</button>
+      </view>
+    </view>
+  </view>
+  <canvas id="shareCanvas" canvas-id="shareCanvas" type="2d" class="share-card-canvas"></canvas>
+</view>

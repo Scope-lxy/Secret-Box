@@ -1,0 +1,15 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+<immersive-nav variant="plain" title="用户协议" show-title="{{true}}" back="{{true}}"></immersive-nav>
+<view class="page plain-page">
+  <view class="legal-doc">
+    <text class="legal-heading">更新日期：2026年6月</text>
+    <text>本小程序仅用于查看运营主体分享的文字、音频、图片等内容，并提供打卡、积分等常见功能。</text>
+    <text class="legal-heading">使用规则</text>
+    <text>你应遵守法律法规和微信平台规则，不得发布违法、侵权、骚扰、广告营销或其他不适宜内容。</text>
+    <text class="legal-heading">内容说明</text>
+    <text>小程序中的文字、音频、图片和记录仅用于展示，不构成心理咨询、医疗、投资或其他专业建议。</text>
+    <text class="legal-heading">服务调整</text>
+    <text>我们可能根据运营需要调整内容、功能或服务入口，并尽量保证已有用户数据的连续性。</text>
+  </view>
+</view>
+</view>

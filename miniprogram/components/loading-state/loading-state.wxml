@@ -1,0 +1,8 @@
+<view class="loading-state" aria-label="{{label}}" role="status">
+  <view class="loading-state-heading">
+    <text class="loading-state-label">{{label}}</text>
+  </view>
+  <view class="loading-state-lines" aria-hidden="true">
+    <view wx:for="{{rowItems}}" wx:key="index" class="loading-state-line" style="width: {{item.width}};"></view>
+  </view>
+</view>
