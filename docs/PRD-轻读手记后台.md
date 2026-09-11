@@ -711,4 +711,4 @@ Admin 提供“永久删除”这一业务动作，不保留停用或归档状�
 - 运营检查：[服务配置检查](../admin/server/src/modules/admin/admin-config.service.js)；检查结果不等于微信审核通过。
 - 身份与审核：[后台认证](../admin/server/src/modules/admin/admin-auth.store.js)、[留言检查](../admin/server/src/modules/messages/message-security.service.js)。生产类环境无已保存认证状态时，不启用开发环境默认密码。
 - 数据与内容：[内容接口](../admin/server/src/routes.js)、[数据范围迁移](../admin/server/src/modules/data-scope/data-scope-migration.service.js)。
-- 桌面视觉规范见[后台设计规范](admin-workbench-design-spec.md)，日常导入操作见[内容导入说明](content-import.md)。
+- 桌面视觉规范见[后台设计规范](TEC-admin-workbench-design-spec.md)，日常导入操作见[内容导入说明](TEC-content-import.md)。

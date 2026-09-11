@@ -598,4 +598,4 @@ P0 合规要求：
 - 导航、配置与文案：[启动配置](../miniprogram/utils/startup-config.js)、[默认文案](../miniprogram/utils/default-copy.js)、[文案包](../miniprogram/utils/copy-pack.js)。
 - 打开、打卡和分享：[首页实现](../miniprogram/pages/home/home.js)、[服务端内容服务](../admin/server/src/modules/content/content.service.js)。
 - 样式与广告：[样式参数](../miniprogram/styles/tokens.wxss)、[共享组件样式](../miniprogram/styles/components.wxss)、[广告调度](../miniprogram/utils/ads.js)。
-- 图片与视觉细则分别见[图片规范](PRD-图片资产与封面处理规范.md)和[设计与交付说明](设计与交付说明.md)。
+- 图片与视觉细则分别见[图片规范](PRD-图片资产与封面处理规范.md)和[设计与交付说明](TEC-设计与交付说明.md)。

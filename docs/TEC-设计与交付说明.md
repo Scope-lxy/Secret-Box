@@ -9,7 +9,7 @@
 | 小程序产品需求 | [小程序 PRD](PRD-轻读手记小程序端.md) |
 | 后台产品需求 | [后台 PRD](PRD-轻读手记后台.md) |
 | 图片、封面与降级 | [图片规范](PRD-图片资产与封面处理规范.md) |
-| 后台视觉与布局 | [后台设计规范](admin-workbench-design-spec.md) |
+| 后台视觉与布局 | [后台设计规范](TEC-admin-workbench-design-spec.md) |
 | 小程序页面与路由 | [app.json](../miniprogram/app.json)、`miniprogram/pages/` |
 | 小程序样式参数 | [tokens.wxss](../miniprogram/styles/tokens.wxss)、[components.wxss](../miniprogram/styles/components.wxss) |
 | 后台页面与交互 | `admin/server/admin/src/index.html`、`styles.css`、`main.js`、`article-manager.js`、`import.js` |
