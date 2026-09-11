@@ -11,7 +11,7 @@ admin/        后台管理面板、Node.js 服务端和运行说明。
 
 ## 文档分工
 
-- 内容新增与批量导入：`admin/docs/content-import.md`。
+- 内容新增与批量导入：`docs/content-import.md`。
 
 ## 本地运行
 
@@ -22,4 +22,4 @@ cd admin\server
 npm run dev
 ```
 
-小程序用微信开发者工具直接打开 `miniprogram/`。后台内容维护和导入规则见 `admin/docs/content-import.md`。
+小程序用微信开发者工具直接打开 `miniprogram/`。后台内容维护和导入规则见 `docs/content-import.md`。
