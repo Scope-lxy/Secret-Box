@@ -15,6 +15,8 @@ Health check:
 curl http://127.0.0.1:3000/api/health
 ```
 
+产品需求见[后台 PRD](PRD-轻读手记后台.md)与[小程序 PRD](PRD-轻读手记小程序端.md)。
+
 ## Data Scope Protocol
 
 小程序会话按 AppID 校验；用户资料、签到、打开记录、互动、收藏和留言等数据按 `dataScopeId` 共享或隔离；运营访问与行为统计仍按 `miniProgramId` 归属。
@@ -25,7 +27,7 @@ curl http://127.0.0.1:3000/api/health
 
 ## Production
 
-生产环境使用 `../deploy/` 下的 Compose、Dockerfile 和环境变量示例；微信审核、发布、隐私保护指引和合法域名状态仍以微信公众平台为准。
+生产环境使用 `../admin/deploy/` 下的 Compose、Dockerfile 和环境变量示例；微信审核、发布、隐私保护指引和合法域名状态仍以微信公众平台为准。
 
 `npm run db:backup` 默认不可执行。只有运维人员明确设置位于活动数据目录之外的 `MINIAPP_BACKUP_DIR` 时才允许手动备份；不得将备份写入 `admin/server/data`、生产数据卷或其子目录。
 
