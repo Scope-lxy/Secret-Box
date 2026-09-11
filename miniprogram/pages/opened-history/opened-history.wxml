@@ -1,0 +1,47 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+<immersive-nav variant="plain" title="累计打开" show-title="{{true}}" back="{{true}}"></immersive-nav>
+<view class="page plain-page">
+  <block wx:for="{{items}}" wx:key="id">
+    <view class="card history-card {{item.isArticle ? 'history-article-card' : ''}} {{item.isAudio ? 'history-audio-card' : ''}}" data-index="{{index}}" bindtap="openActivityItem">
+    <view class="history-meta"><text class="type-badge">{{item.type}}</text><text class="history-time">{{item.time}}</text></view>
+    <view wx:if="{{item.isArticle}}" class="history-article-layout {{item.coverUrl ? '' : 'history-article-layout--no-cover'}}">
+      <view wx:if="{{item.coverUrl}}" class="history-article-media">
+        <image class="history-article-cover" src="{{item.coverUrl}}" mode="aspectFill" lazy-load="{{true}}" data-index="{{index}}" data-src="{{item.coverUrl}}" binderror="handleHistoryCoverError"></image>
+      </view>
+      <view class="history-article-copy">
+        <text class="history-article-title">{{item.title || item.preview}}</text>
+      </view>
+    </view>
+    <view wx:elif="{{item.isAudio}}" class="history-audio-player">
+      <view class="history-audio-copy">
+        <view class="history-audio-title-row"><text class="history-audio-title">{{item.audioTitle}}</text><text class="history-audio-time">{{item.audioCurrentTime}}</text></view>
+        <view class="history-audio-progress"><view class="history-audio-progress-fill" style="{{item.audioProgressStyle}}"></view></view>
+      </view>
+      <view class="history-audio-play {{!item.audioUrl ? 'is-disabled' : ''}}" hover-class="history-audio-play--pressed" data-id="{{item.id}}" aria-role="button" aria-label="{{item.audioIsPlaying ? '暂停' : '播放'}} {{item.audioTitle}}" aria-pressed="{{item.audioIsPlaying}}" aria-disabled="{{!item.audioUrl}}" bindtap="toggleHistoryAudio">
+        <image class="history-audio-icon" src="{{item.audioIsPlaying ? '/assets/icons/audio-pause.svg' : '/assets/icons/audio-play.svg'}}" mode="aspectFit"></image>
+      </view>
+    </view>
+    <view wx:elif="{{item.images.length}}" class="history-album-wrap">
+      <scroll-view scroll-x class="history-image-grid" show-scrollbar="{{false}}">
+        <view class="history-image-track">
+      <view wx:for="{{item.images}}" wx:for-item="image" wx:for-index="imageIndex" wx:key="id" class="photo-card" data-index="{{index}}" data-image-index="{{imageIndex}}" bindtap="previewHistoryImage">
+        <image wx:if="{{image.displayUrl}}" class="entry-image history-album-image" mode="aspectFill" src="{{image.displayUrl}}" data-index="{{index}}" data-image-index="{{imageIndex}}" data-src="{{image.displayUrl}}" binderror="handleHistoryImageError"></image>
+      </view>
+      </view>
+      </scroll-view>
+    </view>
+    <expandable-text wx:else text="{{item.preview}}" paragraphs="{{item.previewParagraphs}}"></expandable-text>
+    </view>
+    <view wx:if="{{item.showNativeAdAfter && ads.mineNative.enabled && ads.mineNative.adUnitId}}" hidden="{{nativeAdHidden}}" class="card ad-card native-template-ad {{nativeAdReady ? '' : 'native-template-ad--loading'}} {{nativeAdHidden ? 'native-template-ad--hidden' : ''}}">
+      <ad-custom unit-id="{{ads.mineNative.adUnitId}}" bindload="handleNativeAdLoad" binderror="handleNativeAdError"></ad-custom>
+    </view>
+  </block>
+  <view wx:if="{{!items.length && ready && !error}}" class="empty-state stack">
+    <image class="empty-icon" src="/assets/icons/empty-record.svg"></image>
+    <text class="title-md">还没有记录</text>
+    <text class="muted">你打开过的内容会出现在这里</text>
+  </view>
+  <loading-state wx:if="{{showSkeleton}}" rows="3" row-width="100%, 82%, 64%" label="正在加载"></loading-state>
+  <view wx:if="{{error && !loading}}" class="card state-card"><text class="muted">{{error}}</text></view>
+</view>
+</view>

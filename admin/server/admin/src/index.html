@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>轻读手记运营后台</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="admin-shell">
+    <div class="login-page" id="loginPage">
+      <div class="login-card">
+        <h1>轻读手记运营工作台</h1>
+        <p>内容、留言、安全和小程序配置统一管理</p>
+        <div class="form-field">
+          <label>管理员账号</label>
+          <input id="loginAccountInput" type="text" value="admin" placeholder="输入账号" />
+        </div>
+        <div class="form-field">
+          <label>密码</label>
+          <div class="secret-input-control">
+            <input id="loginPasswordInput" type="password" placeholder="输入密码" />
+            <button class="secret-visibility-toggle" data-secret-toggle="loginPasswordInput" type="button" aria-controls="loginPasswordInput" aria-pressed="false">显示</button>
+          </div>
+        </div>
+        <div style="margin-top:20px;">
+          <button class="btn-primary" style="width:100%;height:42px;" id="loginBtn" type="button">登录</button>
+        </div>
+        <p id="loginStatus" style="margin-top:16px;font-size:12px;color:var(--muted);">首次登录后建议尽快修改管理员密码</p>
+      </div>
+    </div>
+
+    <div class="admin-layout hidden" id="adminLayout">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <h1>管理后台</h1>
+        </div>
+        <nav class="sidebar-nav" aria-label="后台导航">
+          <button class="nav-item active" data-section="dashboard" type="button">状态面板</button>
+          <button class="nav-item nav-group-start" data-section="miniprograms" type="button">小程序管理</button>
+          <button class="nav-item" data-section="system" type="button">小程序设置</button>
+          <button class="nav-item" data-section="ads" type="button">广告设置</button>
+          <button class="nav-item" data-section="accounts" type="button">用户管理</button>
+          <button class="nav-item nav-group-start" data-section="content" type="button">内容管理</button>
+          <button class="nav-item" data-section="import" type="button">导入内容</button>
+          <button class="nav-item" data-section="daily-content-share" type="button">分享模板</button>
+          <button class="nav-item" data-section="storage" type="button">对象存储</button>
+          <button class="nav-item nav-group-start" data-section="messages" type="button">留言管理</button>
+          <button class="nav-item" data-section="security" type="button">内容安全</button>
+          <button class="nav-item nav-group-start" data-section="admin-account" type="button">管理员账号</button>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="miniprogram-switcher">
+            <label>当前配置小程序</label>
+            <select id="mpSelect">
+              <option value="mp1">默认小程序</option>
+            </select>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="breadcrumb">后台管理 / <strong id="breadcrumbLabel">状态面板</strong></div>
+          <div class="topbar-user">
+            <span id="adminAccountLabel">admin</span>
+            <button class="btn-text btn-danger" id="logoutBtn" type="button">退出</button>
+          </div>
+        </header>
+
+        <div class="content">
+          <section class="section active" id="dashboard">
+            <div class="section-page-head dashboard-page-head">
+              <div class="section-page-copy dashboard-title-row">
+                <h2>状态面板</h2>
+                <span id="serverStatus" class="status">正在检测服务连接</span>
+              </div>
+            </div>
+            <p class="section-hint">当前小程序：<span data-current-mp-name>默认小程序</span></p>
+
+            <div class="dashboard-overview-grid">
+              <div class="panel dashboard-hero-panel">
+                <h3>当前小程序数据</h3>
+                <div id="editableSections" class="stats-row stats-row-compact"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header"><h3>所有小程序数据</h3><select id="dashboardGroupFilter" aria-label="选择分组"><option value="">全部</option></select></div>
+                <div id="dashboardCards" class="stats-row stats-row-compact"></div>
+              </div>
+
+              <div class="panel dashboard-risk-panel">
+                <div class="panel-header">
+                  <h3>服务配置检查</h3>
+                  <button class="btn-primary" id="runPreflightBtn" type="button">重新检查</button>
+                </div>
+                <div id="preflightList" class="preflight-list preflight-list-compact"></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h3>15 日趋势</h3>
+              <div class="trend-legend" id="visitTrendLegend"></div>
+              <div class="trend-chart" id="visitTrendChart" aria-label="最近十五日访问趋势">
+                <canvas id="visitTrendCanvas" width="960" height="280"></canvas>
+                <div class="trend-tooltip" id="visitTrendTooltip" hidden></div>
+                <div class="trend-empty">暂无趋势数据</div>
+              </div>
+            </div>
+
+            <div class="panel hidden">
+              <h3>当前模块</h3>
+              <div id="moduleList" class="tag-list"></div>
+            </div>
+
+              <div class="panel">
+                <div class="panel-header toolbar">
+                  <h3>最近操作记录</h3>
+                </div>
+              <table class="data-table">
+                <colgroup>
+                  <col class="col-id">
+                  <col span="5">
+                </colgroup>
+                <thead>
+                  <tr><th>ID</th><th>时间</th><th>操作者</th><th>操作类型</th><th>对象</th><th>描述</th></tr>
+                </thead>
+                <tbody id="dashboardOperationLogBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section" id="content">
+            <h2>内容管理</h2>
+            <p class="section-hint">按内容池管理共享内容；点击列表行可切换当前编辑内容池，绑定关系仅在小程序配置中修改。</p>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>内容池管理</h3>
+                  <p class="panel-subtitle">保存后将同步到使用该内容池的小程序；已关联的内容池不能删除。</p>
+                </div>
+                <button class="btn-primary" id="addPoolBtn" type="button">新增</button>
+              </div>
+              <div class="pool-select-row">
+                <span class="inline-label">当前管理的内容池：</span>
+                <select id="contentPoolSelect" class="pool-select-inline">
+                  <option selected>默认内容池</option>
+                </select>
+              </div>
+              <table class="data-table pool-table">
+                <colgroup>
+                  <col class="col-id">
+                  <col span="8">
+                  <col class="col-actions">
+                </colgroup>
+                <thead>
+                  <tr><th>ID</th><th>名称</th><th>备注</th><th>文案</th><th>音频</th><th>图册</th><th>文章</th><th>心笺</th><th>已关联</th><th>操作</th></tr>
+                </thead>
+                <tbody id="contentPoolBody">
+                  <tr class="pool-row active" data-pool="默认内容池"><td>1</td><td><strong>默认内容池</strong></td><td>-</td><td data-count="contentTexts">--</td><td data-count="contentAudios">--</td><td data-count="contentAlbums">--</td><td data-count="articles">--</td><td data-count="letters">--</td><td>1 个小程序</td><td><button class="btn-text" type="button">编辑</button> <button class="btn-text btn-danger" type="button">删除</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="content-type-tabs" id="contentTypeTabs" role="tablist" aria-label="内容类型">
+              <button class="content-type-tab active" id="contentTypeTab-contentTexts" data-content-type="contentTexts" role="tab" aria-controls="contentPanel-contentTexts" aria-selected="true" type="button">文案手记</button>
+              <button class="content-type-tab" id="contentTypeTab-contentAudios" data-content-type="contentAudios" role="tab" aria-controls="contentPanel-contentAudios" aria-selected="false" type="button">音频手记</button>
+              <button class="content-type-tab" id="contentTypeTab-contentAlbums" data-content-type="contentAlbums" role="tab" aria-controls="contentPanel-contentAlbums" aria-selected="false" type="button">图册手记</button>
+              <button class="content-type-tab" id="contentTypeTab-articles" data-content-type="articles" role="tab" aria-controls="articleManager" aria-selected="false" type="button">文章</button>
+              <button class="content-type-tab" id="contentTypeTab-letters" data-content-type="letters" role="tab" aria-controls="contentPanel-letters" aria-selected="false" type="button">心笺</button>
+            </div>
+
+            <div class="panel content-type-panel" id="contentPanel-contentTexts" data-content-panel="contentTexts" role="tabpanel" aria-labelledby="contentTypeTab-contentTexts">
+              <div class="panel-header">
+                <h3>文案手记</h3>
+                <div class="batch-actions">
+                  <button class="btn-ghost" data-content-refresh="contentTexts" type="button">刷新</button>
+                  <button class="btn-ghost" data-batch-import="text" type="button">批量导入</button>
+                  <button class="btn-outline btn-danger" data-content-batch-delete="contentTexts" type="button" disabled>批量删除</button>
+                  <button class="btn-primary" data-add-content="contentTexts" type="button">新增</button>
+                  <button class="btn-outline" data-save-content type="button">保存</button>
+                </div>
+              </div>
+              <table class="data-table content-edit-table content-table-content-texts">
+                <colgroup>
+                  <col class="col-select">
+                  <col class="col-id">
+                  <col class="col-label">
+                  <col class="col-copy col-core">
+                  <col class="col-count col-metric">
+                  <col class="col-actions">
+                </colgroup>
+                <thead><tr><th><input type="checkbox" data-content-select-all="contentTexts" aria-label="全选本页文案手记"></th><th>ID</th><th>标签</th><th>文案</th><th>字数</th><th>操作</th></tr></thead>
+                <tbody id="contentTextEditor"></tbody>
+              </table>
+              <div class="table-pagination-container" id="contentTextsPagination"></div>
+            </div>
+
+            <div class="panel content-type-panel" id="contentPanel-contentAudios" data-content-panel="contentAudios" role="tabpanel" aria-labelledby="contentTypeTab-contentAudios" hidden>
+              <div class="panel-header">
+                <h3>音频手记</h3>
+                <div class="batch-actions">
+                  <button class="btn-ghost" data-content-refresh="contentAudios" type="button">刷新</button>
+                  <button class="btn-ghost" data-batch-import="audio" type="button">批量导入</button>
+                  <button class="btn-outline btn-danger" data-content-batch-delete="contentAudios" type="button" disabled>批量删除</button>
+                  <button class="btn-primary" data-add-content="contentAudios" type="button">新增</button>
+                  <button class="btn-outline" data-save-content type="button">保存</button>
+                </div>
+              </div>
+              <table class="data-table content-edit-table content-table-content-audios">
+                <colgroup>
+                  <col class="col-select">
+                  <col class="col-id">
+                  <col class="col-label">
+                  <col class="col-audio-title col-core">
+                  <col class="col-audio-name">
+                  <col class="col-audio-preview">
+                  <col class="col-duration col-metric">
+                  <col class="col-size col-metric">
+                  <col class="col-actions">
+                </colgroup>
+                <thead><tr><th><input type="checkbox" data-content-select-all="contentAudios" aria-label="全选本页音频手记"></th><th>ID</th><th>标签</th><th>标题</th><th>原始文件名</th><th>试听</th><th>时长</th><th>大小</th><th>操作</th></tr></thead>
+                <tbody id="contentAudioEditor"></tbody>
+              </table>
+              <div class="table-pagination-container" id="contentAudiosPagination"></div>
+            </div>
+
+            <div class="panel content-type-panel" id="contentPanel-contentAlbums" data-content-panel="contentAlbums" role="tabpanel" aria-labelledby="contentTypeTab-contentAlbums" hidden>
+              <div class="panel-header">
+                <h3>图册手记</h3>
+                <div class="batch-actions">
+                  <button class="btn-ghost" data-content-refresh="contentAlbums" type="button">刷新</button>
+                  <button class="btn-ghost" data-filter-album-errors type="button">仅看压缩失败</button>
+                  <button class="btn-ghost" data-batch-import="album" type="button">批量导入</button>
+                  <button class="btn-outline btn-danger" data-content-batch-delete="contentAlbums" type="button" disabled>批量删除</button>
+                  <button class="btn-primary" data-add-content="contentAlbums" type="button">新增</button>
+                  <button class="btn-outline" data-save-content type="button">保存</button>
+                </div>
+              </div>
+              <table class="data-table content-edit-table content-table-content-albums">
+                <colgroup>
+                  <col class="col-select">
+                  <col class="col-id">
+                  <col class="col-label">
+                  <col class="col-album-preview col-core">
+                  <col class="col-actions">
+                </colgroup>
+                <thead><tr><th><input type="checkbox" data-content-select-all="contentAlbums" aria-label="全选本页图册手记"></th><th>ID</th><th>标签</th><th>图片预览</th><th>操作</th></tr></thead>
+                <tbody id="contentAlbumEditor"></tbody>
+              </table>
+              <div class="table-pagination-container" id="contentAlbumsPagination"></div>
+            </div>
+
+            <div class="panel article-management-panel content-type-panel" id="articleManager" data-content-panel="articles" role="tabpanel" aria-labelledby="contentTypeTab-articles" hidden>
+              <div class="panel-header">
+                <div>
+                  <h3>文章管理</h3>
+                  <p class="panel-subtitle">统一管理文章内容和发布时间，保存后立即生效。</p>
+                </div>
+                <div class="batch-actions">
+                  <button class="btn-ghost" id="articleRefreshBtn" type="button">刷新</button>
+                  <button class="btn-ghost" id="articleUrlImportBtn" type="button">批量导入</button>
+                  <button class="btn-outline btn-danger" id="articleBatchDeleteBtn" type="button" disabled>批量删除</button>
+                  <button class="btn-primary" id="articleCreateBtn" type="button">新增</button>
+                  <button class="btn-outline" id="articleListSaveBtn" type="button" disabled>保存</button>
+                </div>
+              </div>
+              <div class="article-table-wrap">
+                <table class="data-table article-table">
+                  <colgroup>
+                    <col class="col-select">
+                    <col class="col-id">
+                    <col class="col-label">
+                    <col class="col-article-title">
+                    <col class="col-article-author">
+                    <col class="col-cover">
+                    <col class="col-published-at">
+                    <col class="col-actions">
+                  </colgroup>
+                  <thead><tr><th><input id="articleSelectAll" type="checkbox" aria-label="全选本页文章"></th><th>ID</th><th>标签</th><th>标题</th><th>作者</th><th>封面</th><th>发布时间</th><th>操作</th></tr></thead>
+                  <tbody id="articleList"><tr><td colspan="8">正在加载文章…</td></tr></tbody>
+                </table>
+              </div>
+              <div class="table-pagination-container" id="articlePagination"></div>
+            </div>
+
+            <div class="panel content-type-panel" id="contentPanel-letters" data-content-panel="letters" role="tabpanel" aria-labelledby="contentTypeTab-letters" hidden>
+              <div class="panel-header">
+                <h3>心笺文案</h3>
+                <div class="batch-actions">
+                  <button class="btn-ghost" data-content-refresh="letters" type="button">刷新</button>
+                  <button class="btn-ghost" data-batch-import="letter-copy" type="button">批量导入</button>
+                  <button class="btn-outline btn-danger" data-content-batch-delete="letters" type="button" disabled>批量删除</button>
+                  <button class="btn-primary" data-add-content="letters" type="button">新增</button>
+                  <button class="btn-outline" data-save-content type="button">保存</button>
+                </div>
+              </div>
+              <table class="data-table content-edit-table content-table-letters">
+                <colgroup>
+                  <col class="col-select">
+                  <col class="col-id">
+                  <col class="col-label">
+                  <col class="col-copy col-core">
+                  <col class="col-actions">
+                </colgroup>
+                <thead><tr><th><input type="checkbox" data-content-select-all="letters" aria-label="全选本页心笺"></th><th>ID</th><th>标签</th><th>内容</th><th>操作</th></tr></thead>
+                <tbody id="letterEditor"></tbody>
+              </table>
+              <div class="table-pagination-container" id="lettersPagination"></div>
+            </div>
+
+            <div class="save-bar">
+              <button class="btn-primary" data-save-content type="button">保存全部内容</button>
+            </div>
+          </section>
+
+          <section class="section" id="import">
+            <div class="section-page-head import-section-head">
+              <div class="section-page-copy">
+                <h2>导入内容</h2>
+                <p class="section-hint" id="importHint"></p>
+              </div>
+              <div class="import-page-actions">
+                <label class="import-target-pool" for="importTargetPool">
+                  <span>导入到</span>
+                  <select class="pool-select-inline" id="importTargetPool" aria-label="本次批量导入的内容池"></select>
+                </label>
+                <div class="save-bar save-bar--top">
+                  <button class="btn-outline" id="importBackBtn" type="button">返回内容管理</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="import-type-tabs" id="importTypeTabs" role="tablist" aria-label="内容类型">
+              <button class="import-type-tab active" data-import-type="text" role="tab" aria-selected="true" aria-pressed="true" type="button">文案手记</button>
+              <button class="import-type-tab" data-import-type="audio" role="tab" aria-selected="false" aria-pressed="false" type="button">音频手记</button>
+              <button class="import-type-tab" data-import-type="album" role="tab" aria-selected="false" aria-pressed="false" type="button">图册手记</button>
+              <button class="import-type-tab" data-import-type="article" role="tab" aria-selected="false" aria-pressed="false" type="button">文章</button>
+              <button class="import-type-tab" data-import-type="letter-copy" role="tab" aria-selected="false" aria-pressed="false" type="button">心笺</button>
+            </div>
+
+            <div class="article-url-import-panel hidden" id="articleUrlImportPanel">
+              <div class="article-url-import-stack">
+                <section class="panel article-import-input-panel">
+                  <div class="panel-header import-preview-head">
+                    <div>
+                      <h3>批量导入文章</h3>
+                      <p class="panel-subtitle">每行粘贴一个公众号文章链接，系统统一为阅读模式并自动清理推广尾部，确认后导入。</p>
+                    </div>
+                    <button class="btn-primary" id="articleImportStartBtn" type="button">立即抓取</button>
+                  </div>
+                  <div class="form-field"><textarea id="articleImportUrls" rows="7" aria-label="文章链接" placeholder="每行粘贴一个 mp.weixin.qq.com 文章链接"></textarea></div>
+                </section>
+
+                <section class="panel article-import-results-panel">
+                  <div class="panel-header import-preview-head">
+                    <div>
+                      <h3>导入预览</h3>
+                      <p class="panel-subtitle" id="articleImportSummary" aria-live="polite">等待提交链接</p>
+                    </div>
+                    <div class="article-import-result-actions">
+                      <span class="status status-inline ok hidden" id="articleImportValidCount" aria-live="polite">0 篇可导入</span>
+                      <span class="article-import-result-detail hidden" id="articleImportResultDetail" aria-live="polite"></span>
+                      <button class="btn-primary hidden" id="articleImportPublishBtn" type="button">确认导入</button>
+                    </div>
+                  </div>
+                  <div class="article-import-list" id="articleImportList"></div>
+                </section>
+              </div>
+            </div>
+
+            <div class="panel import-source-panel">
+              <div class="panel-header import-source-head">
+                <div>
+                  <h3 id="importSourceTitle">选择导入文件</h3>
+                  <p class="panel-subtitle" id="importSourceHint"></p>
+                </div>
+                <div class="import-source-actions" id="importSourceActions">
+                  <button class="btn-primary" id="importSelectTextBtn" type="button">选择文件</button>
+                  <button class="btn-primary hidden" id="importSelectAudioBtn" type="button">选择音频</button>
+                  <button class="btn-primary hidden" id="importSelectFolderBtn" type="button">选择文件夹</button>
+                </div>
+              </div>
+              <div class="pool-select-row hidden" id="importSplitControl">
+                <label class="inline-label" for="importSplitMode">文本分段判断方式：</label>
+                <select class="pool-select-inline" id="importSplitMode">
+                  <option value="auto">自动识别</option>
+                  <option value="number">按序号</option>
+                  <option value="blank">按空行</option>
+                  <option value="separator">按分隔线</option>
+                </select>
+              </div>
+              <div class="import-source-status" id="importSourceStatus">尚未选择文件</div>
+              <input class="hidden" id="importTextFile" type="file" accept=".txt,text/plain" />
+              <input class="hidden" id="importAudioFiles" type="file" accept="audio/mpeg,audio/mp4,audio/x-m4a,.mp3,.m4a" multiple />
+              <input class="hidden" id="importFolderFiles" type="file" multiple webkitdirectory directory />
+            </div>
+
+            <div class="panel import-preview-panel">
+              <div class="panel-header import-preview-head">
+                <div>
+                  <h3>导入预览</h3>
+                  <p class="panel-subtitle" id="importPreviewHint">选择文件后显示预览</p>
+                </div>
+                <div class="import-preview-actions">
+                  <span class="status status-inline ok hidden" id="importValidCount">0 条可导入</span>
+                  <span class="status status-inline hidden" id="importProgress"></span>
+                  <button class="btn-text btn-danger hidden" id="importErrorCount" type="button"></button>
+                  <button class="btn-ghost hidden" id="importErrorFilterBtn" type="button">只看需处理</button>
+                  <button class="btn-primary" id="importConfirmBtn" type="button" disabled>确认导入</button>
+                </div>
+              </div>
+
+              <div class="import-operation-error hidden" id="importOperationError" role="alert"></div>
+
+              <div class="import-preview-list" id="importPreviewList"></div>
+            </div>
+          </section>
+
+          <section class="section" id="daily-content-share">
+            <div class="section-page-head">
+              <div class="section-page-copy">
+                <h2>全局分享模板</h2>
+                <p class="section-hint">这套模板由所有小程序共用，包含手记分享标题、封面文案和通用底图。公开内容仍自动从正文或第一张图片生成分享效果。</p>
+              </div>
+              <div class="save-bar save-bar--top">
+                <button class="btn-primary" id="saveShareSettings" type="button">保存封面设置</button>
+              </div>
+            </div>
+
+            <div class="share-settings-stack">
+              <section class="panel share-preview-section">
+              <div class="share-catalog-head">
+                <div>
+                  <h3>分享效果预览</h3>
+                  <p id="shareCardCatalogHint">标题显示在图片上方；下方随机展示实际底图、标题、日期、封面文案和固定排版的组合。</p>
+                </div>
+                <button class="btn-ghost share-preview-refresh" id="refreshShareCardPreview" type="button">刷新</button>
+              </div>
+              <div class="share-card-grid" id="shareCardCatalog"></div>
+              </section>
+
+              <section class="panel share-style-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>封面样式</h3>
+                  <p class="panel-subtitle">只调整现有的居中、左对齐两套排版；保存后直接下发给小程序。</p>
+                </div>
+                <div class="panel-actions share-style-actions">
+                  <details class="share-template-dropdown">
+                    <summary>
+                      <span>启用样式</span>
+                      <span class="share-template-summary" id="shareStyleTemplateSummary">已选 2 项</span>
+                    </summary>
+                    <div class="share-template-options">
+                      <label class="share-template-option">
+                        <input id="shareCenteredLayoutEnabled" type="checkbox">
+                        <span>居中样式</span>
+                      </label>
+                      <label class="share-template-option">
+                        <input id="shareLeftLayoutEnabled" type="checkbox">
+                        <span>左对齐样式</span>
+                      </label>
+                    </div>
+                  </details>
+                  <button class="btn-ghost" id="resetShareCoverStyle" type="button">重置</button>
+                </div>
+              </div>
+              <div class="share-style-grid">
+                <div class="share-style-section">
+                  <h4>遮罩和位置</h4>
+                  <label class="share-style-field">
+                    <span>整体暗化遮罩</span>
+                    <input id="shareGlobalWashOpacity" type="number" min="0" max="0.4" step="0.01" inputmode="decimal">
+                  </label>
+                  <label class="share-style-field">
+                    <span>文字保护遮罩</span>
+                    <input id="shareReadingZoneOpacity" type="number" min="0" max="0.65" step="0.01" inputmode="decimal">
+                  </label>
+                  <label class="share-style-field">
+                    <span>居中上下微调</span>
+                    <input id="shareCenteredLayoutOffsetY" type="number" min="-72" max="72" step="1" inputmode="numeric">
+                  </label>
+                  <label class="share-style-field">
+                    <span>左对齐上下微调</span>
+                    <input id="shareLeftLayoutOffsetY" type="number" min="-72" max="72" step="1" inputmode="numeric">
+                  </label>
+                </div>
+                <div class="share-style-section">
+                  <h4>文字与遮罩颜色</h4>
+                  <div class="share-style-field share-style-color">
+                    <label for="shareCopyColor">文案颜色</label>
+                    <div class="share-hex-control">
+                      <details class="share-color-palette" data-share-color-palette>
+                        <summary aria-label="选择常用颜色" title="选择常用颜色"><span class="share-color-swatch" data-share-color-swatch></span></summary>
+                        <div class="share-color-options" data-share-color-options></div>
+                      </details>
+                      <input class="share-hex-color" id="shareCopyColor" type="text" inputmode="text" maxlength="7" pattern="#[0-9A-Fa-f]{6}" placeholder="#FFFFFF" autocomplete="off" spellcheck="false">
+                    </div>
+                  </div>
+                  <div class="share-style-field share-style-color">
+                    <label for="shareDateColor">日期颜色</label>
+                    <div class="share-hex-control">
+                      <details class="share-color-palette" data-share-color-palette>
+                        <summary aria-label="选择常用颜色" title="选择常用颜色"><span class="share-color-swatch" data-share-color-swatch></span></summary>
+                        <div class="share-color-options" data-share-color-options></div>
+                      </details>
+                      <input class="share-hex-color" id="shareDateColor" type="text" inputmode="text" maxlength="7" pattern="#[0-9A-Fa-f]{6}" placeholder="#F0D9A8" autocomplete="off" spellcheck="false">
+                    </div>
+                  </div>
+                  <div class="share-style-field share-style-color">
+                    <label for="shareDividerColor">分割线颜色</label>
+                    <div class="share-hex-control">
+                      <details class="share-color-palette" data-share-color-palette>
+                        <summary aria-label="选择常用颜色" title="选择常用颜色"><span class="share-color-swatch" data-share-color-swatch></span></summary>
+                        <div class="share-color-options" data-share-color-options></div>
+                      </details>
+                      <input class="share-hex-color" id="shareDividerColor" type="text" inputmode="text" maxlength="7" pattern="#[0-9A-Fa-f]{6}" placeholder="#F0D9A8" autocomplete="off" spellcheck="false">
+                    </div>
+                  </div>
+                  <div class="share-style-field share-style-color">
+                    <label for="shareReadingZoneColor">文字保护遮罩颜色</label>
+                    <div class="share-hex-control">
+                      <details class="share-color-palette" data-share-color-palette>
+                        <summary aria-label="选择常用颜色" title="选择常用颜色"><span class="share-color-swatch" data-share-color-swatch></span></summary>
+                        <div class="share-color-options" data-share-color-options></div>
+                      </details>
+                      <input class="share-hex-color" id="shareReadingZoneColor" type="text" inputmode="text" maxlength="7" pattern="#[0-9A-Fa-f]{6}" placeholder="#1C1813" autocomplete="off" spellcheck="false">
+                    </div>
+                  </div>
+                </div>
+                <div class="share-style-section">
+                  <h4>文字规格</h4>
+                  <label class="share-style-field">
+                    <span>日期字号</span>
+                    <input id="shareDateFontSize" type="number" min="20" max="100" step="1" inputmode="numeric">
+                  </label>
+                  <label class="share-style-field">
+                    <span>文案字号</span>
+                    <input id="shareCopyFontSize" type="number" min="20" max="100" step="1" inputmode="numeric">
+                  </label>
+                  <label class="share-style-field">
+                    <span>分割间距</span>
+                    <input id="shareDividerGap" type="number" min="20" max="100" step="1" inputmode="numeric">
+                  </label>
+                  <label class="share-style-field">
+                    <span>分割线长度</span>
+                    <input id="shareDividerLength" type="number" min="20" max="100" step="1" inputmode="numeric">
+                  </label>
+                </div>
+              </div>
+              </section>
+
+              <div class="share-type-tabs" id="shareContentTypeTabs" role="tablist" aria-label="私密内容类型">
+              <button class="share-type-tab active" data-share-content-type="text" role="tab" aria-selected="true" type="button">文案</button>
+              <button class="share-type-tab" data-share-content-type="audio" role="tab" aria-selected="false" type="button">语音</button>
+              <button class="share-type-tab" data-share-content-type="image" role="tab" aria-selected="false" type="button">图片</button>
+              </div>
+
+              <div class="share-library-grid">
+              <section class="panel share-library-panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>手记标题库 <span class="share-library-count" id="shareTitlePoolCount">0 条</span></h3>
+                    <p class="panel-subtitle">一行一句，每句就是一个标题。系统会避开近期重复。</p>
+                  </div>
+                </div>
+                <textarea class="share-title-pool" id="shareTitlePoolInput" rows="10" placeholder="今天选了一篇手记，慢慢读完吧&#10;这篇手记很安静，适合今天慢慢读"></textarea>
+              </section>
+
+              <section class="panel share-library-panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>手记封面文案 <span class="share-library-count" id="shareCoverCopyPoolCount">0 条</span></h3>
+                    <p class="panel-subtitle">一行一句，每句 4-20 字。</p>
+                  </div>
+                  <label class="toggle compact-toggle" title="关闭后手记分享图仅使用通用底图">
+                    <span>叠加文案</span>
+                    <input id="shareCoverCopyEnabled" type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <textarea class="share-title-pool" id="shareCoverCopyPoolInput" rows="10" placeholder="今日手记&#10;轻读手记"></textarea>
+              </section>
+              </div>
+
+              <section class="panel share-background-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>通用封面底图</h3>
+                  <p class="panel-subtitle">上传到 COS 后同时用于私密文字海报和无图公开内容；不需要与标题或文案配对。</p>
+                </div>
+                <button class="btn-ghost" id="shareCoverUploadBtn" type="button">上传底图</button>
+                <input id="shareCoverUploadFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
+              </div>
+              <div class="share-cover-grid" id="shareCoverGrid"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="section" id="ads">
+            <h2>广告设置</h2>
+            <p class="section-hint" data-mp-hint>当前小程序：默认小程序</p>
+            <div id="adsConfigEditor"></div>
+
+            <div class="save-bar">
+              <button class="btn-primary" data-save-content type="button">保存广告设置</button>
+            </div>
+          </section>
+
+          <section class="section" id="messages">
+            <h2>留言管理</h2>
+            <p class="section-hint">留言仅用户与运营可见，提交后自动进行安全检查。</p>
+            <div class="panel">
+              <div class="panel-header toolbar">
+                <div class="filter-bar toolbar-filters">
+                  <select id="messageMiniProgramFilter"><option value="all">全部小程序</option></select>
+                  <select id="messageSourceFilter"><option value="all">全部来源</option><option value="daily_content">手记</option><option value="articles">文章</option><option value="letters">心笺</option></select>
+                  <select id="messageStatusFilter"><option value="all">全部状态</option><option value="saved">已通过</option><option value="blocked">已拦截</option></select>
+                  <input id="messageSearchInput" type="text" placeholder="搜索留言内容..." />
+                </div>
+                <button id="refreshMessages" class="btn-ghost" type="button">刷新留言</button>
+              </div>
+              <div id="messageList" class="message-list"></div>
+            </div>
+          </section>
+
+          <section class="section" id="security">
+            <div class="section-page-head">
+              <div class="section-page-copy">
+                <h2>内容安全</h2>
+                <p class="section-hint">留言文本会先匹配后台关键词，再进行微信内容安全检测；图片安全检测接通后再启用。</p>
+              </div>
+              <div class="save-bar save-bar--top">
+                <button class="btn-primary" data-save-security type="button">保存安全设置</button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h3>安全处理结果</h3>
+              <div class="stats-row" id="securityStats"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>基础配置</h3>
+                  <p class="panel-subtitle">违规或命中拦截词的内容会自动拦截。</p>
+                </div>
+                <button class="btn-primary" data-save-security type="button">保存</button>
+              </div>
+              <div class="security-toggle-group">
+                <article class="config-card">
+                  <div class="config-card-head">
+                    <div class="config-card-copy">
+                      <strong>文本安全检测</strong>
+                      <span class="config-card-description">留言提交前检测；关闭后不建议上线</span>
+                    </div>
+                    <label class="toggle compact-toggle">
+                      <input type="checkbox" data-security-field="textCheck" checked />
+                      <span class="toggle-slider"></span>开启
+                    </label>
+                  </div>
+                </article>
+                <article class="config-card">
+                  <div class="config-card-head">
+                    <div class="config-card-copy">
+                      <strong>图片安全检测</strong>
+                      <span class="config-card-description">图片审核链路接通后启用</span>
+                    </div>
+                    <label class="toggle compact-toggle">
+                      <input type="checkbox" data-security-field="imageCheck" checked />
+                      <span class="toggle-slider"></span>开启
+                    </label>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>关键词拦截</h3>
+                  <p class="panel-subtitle">拦截关键词：每组可输入多个关键词，使用中文分号「；」隔开。</p>
+                </div>
+                <button class="btn-primary" data-add-keyword="blockedWords" type="button">新增</button>
+              </div>
+              <div class="keyword-list" data-keyword-list="blockedWords"></div>
+            </div>
+          </section>
+
+          <section class="section" id="storage">
+            <h2>图片素材</h2>
+            <p class="section-hint">管理图片与展示版本，内容中通过素材编号引用。</p>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>COS 配置</h3>
+                  <p class="panel-subtitle">目前仅支持腾讯云 COS。</p>
+                </div>
+                <div class="batch-actions">
+                  <span id="storageConnectionStatus" class="status status-inline hidden"></span>
+                  <button class="btn-ghost" id="testStorageSettings" type="button">测试连接</button>
+                  <button class="btn-primary" id="saveStorageSettings" type="button">保存 COS 配置</button>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-field"><label>APPID</label><input type="text" data-storage-field="appId" placeholder="输入 APPID" /></div>
+                <div class="form-field"><label>SecretID</label><input type="text" data-storage-field="secretId" placeholder="输入 SecretID" /></div>
+                <div class="form-field secret-field">
+                  <label>SecretKEY</label>
+                  <div class="secret-input-control">
+                    <input id="storageSecretKeyInput" type="password" data-storage-field="secretKey" data-secret-reveal="storageSecretKey" placeholder="输入 SecretKEY" />
+                    <button class="secret-visibility-toggle" data-secret-toggle="storageSecretKeyInput" type="button" aria-controls="storageSecretKeyInput" aria-pressed="false">显示</button>
+                  </div>
+                </div>
+                <div class="form-field"><label>Bucket</label><input type="text" data-storage-field="bucket" placeholder="例如：mybucket-1250000000" /></div>
+                <div class="form-field"><label>Bucket 所在地域</label><input type="text" data-storage-field="region" placeholder="例如：ap-chengdu" /></div>
+                <div class="form-field"><label>访问域名 URL</label><input type="text" data-storage-field="url" placeholder="例如：https://abc.com" /></div>
+                <div class="form-field"><label>文件夹前缀</label><input type="text" data-storage-field="folderPrefix" placeholder="例如：secretbox" /></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <h3>图片素材</h3>
+                <div class="batch-actions">
+                  <button id="uploadImageBtn" class="btn-ghost" type="button">上传图片</button>
+                  <button id="saveImages" class="btn-primary" type="button">保存图片素材</button>
+                </div>
+              </div>
+              <input id="uploadImageFile" class="hidden" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" />
+              <div id="imageEditor" class="image-editor-list"></div>
+            </div>
+          </section>
+
+          <section class="section" id="system">
+            <div class="section-page-head system-page-head">
+              <div class="section-page-copy">
+                <h2>小程序设置</h2>
+                <p class="section-hint" data-mp-hint>当前小程序：默认小程序</p>
+              </div>
+              <div class="system-mode-actions">
+                <select id="miniProgramDataMode" aria-label="数据模式">
+                  <option value="shared">共享矩阵数据</option>
+                  <option value="independent">使用独立数据</option>
+                </select>
+                <select id="miniProgramMode" aria-label="配置模式">
+                  <option value="default">默认正常模式</option>
+                  <option value="audit">临时提审模式</option>
+                </select>
+                <button class="btn-primary" id="saveMiniProgramMode" type="button">保存模式配置</button>
+              </div>
+            </div>
+
+            <div class="settings-cluster">
+              <div class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>小程序与内容池</h3>
+                    <p class="panel-subtitle">AppID 和 AppSecret 来自微信公众平台；Admin 按 AppID 向该小程序下发业务配置。</p>
+                  </div>
+                  <button class="btn-primary" id="saveMiniProgramInfo" type="button">保存</button>
+                </div>
+                <div class="mini-program-form-grid">
+                  <div class="form-field"><label>小程序名称</label><input type="text" data-mp-field="name" value="默认小程序" /></div>
+                  <div class="form-field"><label>AppID</label><input type="text" data-mp-field="appId" /></div>
+                  <div class="form-field secret-field">
+                    <label>AppSecret</label>
+                    <div class="secret-input-control">
+                      <input id="miniProgramAppSecretInput" type="password" data-mp-field="appSecret" data-secret-reveal="appSecret" placeholder="输入 AppSecret" />
+                      <button class="secret-visibility-toggle" data-secret-toggle="miniProgramAppSecretInput" type="button" aria-controls="miniProgramAppSecretInput" aria-pressed="false">显示</button>
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label>绑定内容池</label>
+                    <select data-mp-field="contentPoolId"></select>
+                  </div>
+                  <div class="form-field"><label>开发者邮箱</label><input type="email" data-mp-field="developerEmail" placeholder="用于用户申请查阅、更正或注销账号" /></div>
+                  <div class="form-field"><label>备注</label><input type="text" data-mp-field="remark" /></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-cluster">
+              <div class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>首页导航</h3>
+                    <p class="panel-subtitle">控制首页展示哪些数据，以及底部 Tab 是否显示。</p>
+                  </div>
+                  <button class="btn-primary" data-save-system type="button">保存</button>
+                </div>
+                <div class="settings-subsection-stack">
+                  <div class="settings-subsection">
+                    <h4 class="setting-subtitle">首页数据项</h4>
+                    <div class="form-grid paired-setting-grid">
+                  <div class="form-field">
+                    <label>今日排名</label>
+                    <div class="setting-field-control">
+                      <input type="text" data-home-stat-label="rankToday" value="今天第几位" />
+                      <label class="setting-visibility-control"><input type="checkbox" data-home-stat-visible="rankToday" checked /><span>显示</span></label>
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label>连续打卡</label>
+                    <div class="setting-field-control">
+                      <input type="text" data-home-stat-label="checkInDays" value="已连续打卡" />
+                      <label class="setting-visibility-control"><input type="checkbox" data-home-stat-visible="checkInDays" checked /><span>显示</span></label>
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label>阅读值</label>
+                    <div class="setting-field-control">
+                      <input type="text" data-home-stat-label="companionValue" value="累计阅读值" />
+                      <label class="setting-visibility-control"><input type="checkbox" data-home-stat-visible="companionValue" checked /><span>显示</span></label>
+                    </div>
+                  </div>
+                    </div>
+                  </div>
+                  <hr class="divider">
+                  <div class="settings-subsection">
+                    <h4 class="setting-subtitle">底部 Tab</h4>
+                    <div class="form-grid paired-setting-grid">
+                  <div class="form-field">
+                    <label>首页 Tab</label>
+                    <div class="setting-field-control">
+                      <input type="text" data-tab-field="home" value="首页" disabled />
+                      <label class="setting-visibility-control"><input type="checkbox" data-tab-visible="home" checked /><span>显示</span></label>
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label>文章 Tab</label>
+                    <div class="setting-field-control">
+                      <input type="text" data-tab-field="articles" value="文章" />
+                      <label class="setting-visibility-control"><input type="checkbox" data-tab-visible="articles" checked /><span>显示</span></label>
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label>心笺 Tab</label>
+                    <div class="setting-field-control">
+                      <input type="text" data-tab-field="letters" value="心笺" />
+                      <label class="setting-visibility-control"><input type="checkbox" data-tab-visible="letters" checked /><span>显示</span></label>
+                    </div>
+                  </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-cluster">
+              <div class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>页面标题</h3>
+                    <p class="panel-subtitle">设置首页、文章和心笺页面顶部显示的标题。</p>
+                  </div>
+                  <button class="btn-primary" data-save-system type="button">保存</button>
+                </div>
+                <div class="copy-field-grid copy-field-grid--three">
+                  <div class="form-field"><label>首页标题</label><input type="text" data-system-field="homeHero" value="给你的专属秘密" /></div>
+                  <div class="form-field"><label>文章标题</label><input type="text" data-system-field="articlesHero" value="走心的精选文章" /></div>
+                  <div class="form-field"><label>心笺标题</label><input type="text" data-system-field="lettersHero" value="暖心的文案短句" /></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-cluster">
+              <div class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>全局设置</h3>
+                    <p class="panel-subtitle">控制当前小程序的手记内容类型、文章列表布局、文章排序、心笺排序和留言功能。</p>
+                  </div>
+                  <button class="btn-primary" data-save-global-feature-rules type="button">保存</button>
+                </div>
+                <div class="global-feature-rule-grid">
+                  <div class="form-field">
+                    <label>图册手记</label>
+                    <select data-daily-content-type-field="imageEnabled">
+                      <option value="enabled">开启</option>
+                      <option value="disabled">关闭</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label>音频手记</label>
+                    <select data-daily-content-type-field="audioEnabled">
+                      <option value="enabled">开启</option>
+                      <option value="disabled">关闭</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label>留言功能</label>
+                    <select data-feature-field="messagesEnabled">
+                      <option value="enabled">开启</option>
+                      <option value="disabled">关闭</option>
+                    </select>
+                  </div>
+                  <div class="form-field"><label for="articleListLayout">文章列表布局</label><select id="articleListLayout"><option value="title-left">常规卡片</option><option value="stacked">大图卡片</option><option value="mixed">混搭模式</option></select></div>
+                  <div class="form-field">
+                    <label>文章排序方式</label>
+                    <select data-system-field="articlesSortMode">
+                      <option value="random">随机打乱（每次进入不同顺序）</option>
+                      <option value="sequence">倒序排列（按入库顺序展示）</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label>心笺排序方式</label>
+                    <select data-system-field="lettersSortMode">
+                      <option value="random">随机打乱（每次进入不同顺序）</option>
+                      <option value="sequence">倒序排列（按入库顺序展示）</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-cluster">
+              <div class="panel article-display-panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>文章设置</h3>
+                    <p class="panel-subtitle">控制正文展开位置、展开按钮文案和广告未完整观看提示；文章广告请在广告设置中管理。</p>
+                  </div>
+                  <button class="btn-primary" id="articleDisplaySettingsSaveBtn" type="button">保存</button>
+                </div>
+                <div class="form-grid article-settings-grid">
+                  <div class="form-field"><label for="articleExpandText">展开按钮文案</label><input id="articleExpandText" type="text" value="展开全文" maxlength="12" /></div>
+                  <div class="form-field"><label>广告未完整观看提示</label><input type="text" data-system-field="articleAdIncompleteText" value="完整观看广告后，即可展开全文"></div>
+                  <div class="form-field"><label for="articleExpandPosition">展开按钮位置</label><select id="articleExpandPosition"><option value="earliest">最早（10vh）</option><option value="early" selected>较早（20vh）</option><option value="medium">适中（30vh）</option><option value="late">较后（40vh）</option><option value="latest">最晚（50vh）</option></select></div>
+                  <div class="form-field"><label for="articleHideFullArticle">文章详情页默认状态</label><select id="articleHideFullArticle" aria-label="全文展示方式"><option value="hidden">隐藏全文</option><option value="visible">不隐藏全文</option></select></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-cluster">
+              <div class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>手记设置</h3>
+                    <p class="panel-subtitle">设置用户打开手记前后的文案、提醒和每日打开上限。</p>
+                  </div>
+                  <button class="btn-primary" id="saveSystemSettings" data-save-system type="button">保存</button>
+                </div>
+                <div class="copy-field-grid copy-field-grid--flow">
+                  <div class="form-field"><label>手记按钮文案</label><input type="text" data-system-field="dailyContentButtonText" value="打开今日手记"></div>
+                  <div class="form-field"><label>广告未完整观看提示</label><input type="text" data-system-field="dailyContentAdIncompleteText" value="完整观看广告后，即可打开手记"></div>
+                  <div class="form-field copy-field-wide"><label>打开前引导文案</label><p class="field-hint">每行一条，须包含中文逗号“，”；系统随机展示。留空时使用小程序内置默认文案。</p><textarea class="copy-library-textarea" rows="10" data-system-field="dailyContentPromptTexts">想说的，都悄悄放这里了
+打开前，猜猜里面是什么</textarea></div>
+                  <div id="limitConfigEditor" class="limit-config-editor daily-content-limit-field"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-cluster">
+              <div class="panel">
+                <div class="panel-header">
+                  <div>
+                    <h3>打卡设置</h3>
+                    <p class="panel-subtitle">设置用户从点击打卡到完成后的提示文案。</p>
+                  </div>
+                  <button class="btn-primary" data-save-system type="button">保存</button>
+                </div>
+                <div class="copy-field-grid copy-field-grid--flow">
+                  <div class="form-field"><label>打卡按钮文案</label><input type="text" data-system-field="checkinButtonText" value="立即打卡"></div>
+                  <div class="form-field"><label>广告未完整观看提示</label><input type="text" data-system-field="checkinAdIncompleteText" value="完整观看广告后，即可完成打卡"></div>
+                  <div class="form-field"><label>打卡前展示文案</label><p class="field-hint">每行一条；每天随机展示一条，刷新页面不更换。留空时使用小程序内置默认文案。</p><textarea class="copy-library-textarea" rows="10" data-system-field="checkinBeforeTexts">今天也等到你了
+每天都来打卡吧</textarea></div>
+                  <div class="form-field"><label>打卡后展示文案</label><p class="field-hint">每行一条；每天随机展示一条，刷新页面不更换。留空时使用小程序内置默认文案。</p><textarea class="copy-library-textarea" rows="10" data-system-field="checkinAfterTexts">今日已点亮，明天再来打卡吧！
+感谢你的支持，明天我等你哦！</textarea></div>
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+          <section class="section" id="miniprograms">
+            <h2>小程序管理</h2>
+            <p class="section-hint">这里管理接入我们服务的业务实例，并可上传开发版代码。审核、发布、隐私保护指引和合法域名仍以微信公众平台为准。</p>
+            <div class="panel">
+              <div class="panel-header">
+                <h3>已接入小程序</h3>
+                <div class="batch-actions"><button class="btn-ghost" id="manageGroupsBtn" type="button">设置分组</button><button class="btn-primary" id="addMpBtn" type="button">新增小程序</button></div>
+              </div>
+              <table class="data-table mini-program-table">
+                <colgroup>
+                  <col class="col-name">
+                  <col class="col-pool">
+                  <col class="col-app-id">
+                  <col class="col-version">
+                  <col class="col-group">
+                  <col class="col-remark">
+                  <col class="col-order">
+                  <col class="col-actions">
+                </colgroup>
+                <thead><tr><th>名称</th><th>绑定内容池</th><th>AppID</th><th>最近上传版本</th><th>分组</th><th>备注</th><th>排序</th><th>操作</th></tr></thead>
+                <tbody id="miniProgramBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section" id="accounts">
+            <h2>用户管理</h2>
+            <p class="section-hint">仅展示当前小程序“<span data-current-mp-name>默认小程序</span>”的账号；注销不会影响同一用户在其他小程序中的账号和数据。</p>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>用户账号</h3>
+                  <p class="panel-subtitle">收到用户注销申请并核实身份后，在这里手动处理。</p>
+                </div>
+                <div class="batch-actions">
+                  <span id="accountStatus" class="status status-inline hidden"></span>
+                  <button class="btn-ghost" id="refreshAccounts" type="button">刷新</button>
+                </div>
+              </div>
+              <div id="accountList" class="account-list"></div>
+            </div>
+          </section>
+
+          <section class="section" id="admin-account">
+            <h2>管理员账号</h2>
+            <p class="section-hint">后台共享的安全设置，不随任何小程序切换。</p>
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>登录信息</h3>
+                  <p class="panel-subtitle">修改后当前会话会失效，需要重新登录；账号和密码只存服务端，不回显明文密码。</p>
+                </div>
+                <button class="btn-primary" id="saveAdminAuthBtn" type="button">保存账号密码</button>
+              </div>
+              <div class="account-edit-grid">
+                <div class="form-field"><label>管理员账号</label><input type="text" id="adminAccountInput" placeholder="输入管理员账号" /></div>
+                <div class="form-field">
+                  <label>当前密码</label>
+                  <div class="secret-input-control">
+                    <input type="password" id="adminCurrentPasswordInput" placeholder="输入当前密码确认" />
+                    <button class="secret-visibility-toggle" data-secret-toggle="adminCurrentPasswordInput" type="button" aria-controls="adminCurrentPasswordInput" aria-pressed="false">显示</button>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label>新密码</label>
+                  <div class="secret-input-control">
+                    <input type="password" id="adminPasswordInput" placeholder="输入新密码" />
+                    <button class="secret-visibility-toggle" data-secret-toggle="adminPasswordInput" type="button" aria-controls="adminPasswordInput" aria-pressed="false">显示</button>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label>确认新密码</label>
+                  <div class="secret-input-control">
+                    <input type="password" id="adminPasswordConfirmInput" placeholder="再次输入新密码" />
+                    <button class="secret-visibility-toggle" data-secret-toggle="adminPasswordConfirmInput" type="button" aria-controls="adminPasswordConfirmInput" aria-pressed="false">显示</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="modal hidden" id="singleContentModal" role="dialog" aria-modal="true" aria-labelledby="singleContentTitle">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body single-content-modal-body">
+        <div class="modal-editor-head">
+          <h3 id="singleContentTitle">新增内容</h3>
+          <div class="modal-editor-actions">
+            <button class="btn-ghost" id="singleContentCancel" type="button">取消</button>
+            <button class="btn-primary" id="singleContentSave" type="button">保存</button>
+          </div>
+        </div>
+        <div class="single-content-fields" id="singleContentFields"></div>
+        <div class="form-field hidden" id="singleContentImageField">
+          <label id="singleContentImageLabel">图片</label>
+          <input class="hidden" id="singleContentImageInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" multiple />
+          <div class="single-content-image-actions">
+            <button class="btn-ghost" id="singleContentSelectImages" type="button">选择图片</button>
+            <span class="single-content-image-count" id="singleContentImageCount"></span>
+          </div>
+          <div class="single-content-image-preview" id="singleContentImagePreview"></div>
+        </div>
+        <div class="form-field hidden" id="singleContentAudioField">
+          <label>音频</label>
+          <input class="hidden" id="singleContentAudioInput" type="file" accept="audio/mpeg,audio/mp4,audio/x-m4a,.mp3,.m4a" />
+          <div class="single-content-image-actions">
+            <button class="btn-ghost" id="singleContentSelectAudio" type="button">选择音频</button>
+            <span class="single-content-image-count" id="singleContentAudioCount"></span>
+          </div>
+          <div class="single-content-audio-preview" id="singleContentAudioPreview"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="addMpModal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body">
+        <div class="modal-editor-head">
+          <h3>新增小程序</h3>
+          <div class="modal-editor-actions">
+            <button class="btn-ghost" id="cancelMpBtn" type="button">取消</button>
+            <button class="btn-primary" id="createMpBtn" type="button">创建</button>
+          </div>
+        </div>
+        <p class="modal-hint">先到微信公众平台取得 AppID 和 AppSecret。创建后，小程序会按运行时 AppID 自动读取此处配置。</p>
+        <div class="form-field"><label>小程序名称</label><input type="text" id="newMpName" placeholder="输入小程序名称" required /></div>
+        <div class="form-field"><label>AppID</label><input type="text" id="newMpAppId" placeholder="输入微信公众平台 AppID" required /></div>
+        <div class="form-field">
+          <label>AppSecret</label>
+          <div class="secret-input-control">
+            <input type="password" id="newMpAppSecret" placeholder="输入微信公众平台 AppSecret" required />
+            <button class="secret-visibility-toggle" data-secret-toggle="newMpAppSecret" type="button" aria-controls="newMpAppSecret" aria-pressed="false">显示</button>
+          </div>
+        </div>
+        <div class="form-field"><label>开发者联系邮箱</label><input type="email" id="newMpDeveloperEmail" placeholder="用于用户申请查阅、更正或注销账号" required /></div>
+        <div class="form-field"><label>绑定内容池</label><select id="newMpContentPool"></select></div>
+        <div class="form-field"><label>备注</label><textarea rows="2" id="newMpRemark" placeholder="可选"></textarea></div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="uploadMiniProgramModal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body">
+        <div class="modal-editor-head">
+          <h3>上传代码</h3>
+          <div class="modal-editor-actions">
+            <button class="btn-ghost" id="cancelUploadMiniProgram" type="button">取消</button>
+            <button class="btn-primary" id="confirmUploadMiniProgram" type="button">上传</button>
+          </div>
+        </div>
+        <p class="modal-hint" id="uploadMiniProgramHint"></p>
+        <div class="form-field">
+          <label>代码上传密钥</label>
+          <textarea rows="5" id="uploadMiniProgramPrivateKey" maxlength="16384" autocomplete="new-password" spellcheck="false" placeholder="粘贴微信公众平台生成的完整密钥"></textarea>
+          <p class="field-hint" id="uploadMiniProgramPrivateKeyHint"></p>
+        </div>
+        <div class="form-field"><label>版本号（自动生成，可修改）</label><input type="text" id="uploadMiniProgramVersion" maxlength="64" placeholder="如 V26.8.30" /><p class="field-hint">相同源码会复用同一版本号；只有源码变化时才会生成新版本。</p></div>
+        <div class="form-field"><label>更新说明</label><textarea rows="3" id="uploadMiniProgramDescription" maxlength="200" placeholder="填写本次更新说明" required></textarea></div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="addPoolModal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body">
+        <div class="modal-editor-head">
+          <h3>新增内容池</h3>
+          <div class="modal-editor-actions">
+            <button class="btn-ghost" id="cancelPoolBtn" type="button">取消</button>
+            <button class="btn-primary" id="createPoolBtn" type="button">创建</button>
+          </div>
+        </div>
+        <div class="form-field"><label>内容池名称</label><input type="text" id="newPoolName" placeholder="输入内容池名称" /></div>
+        <div class="form-field"><label>备注</label><textarea rows="2" id="newPoolRemark" placeholder="可选"></textarea></div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="editPoolModal" role="dialog" aria-modal="true" aria-labelledby="editPoolTitle">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body">
+        <div class="modal-editor-head">
+          <h3 id="editPoolTitle">编辑内容池</h3>
+          <div class="modal-editor-actions">
+            <button class="btn-ghost" id="cancelEditPoolBtn" type="button">取消</button>
+            <button class="btn-primary" id="saveEditPoolBtn" type="button">保存</button>
+          </div>
+        </div>
+        <div class="form-field"><label for="editPoolName">名称</label><input type="text" id="editPoolName" placeholder="输入内容池名称" /></div>
+        <div class="form-field"><label for="editPoolRemark">备注</label><textarea rows="2" id="editPoolRemark" placeholder="可选"></textarea></div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="articlePreviewModal" role="dialog" aria-modal="true" aria-labelledby="articlePreviewModalTitle">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body article-preview-modal-body">
+        <div class="article-modal-head"><h3 id="articlePreviewModalTitle">阅读模式预览</h3><button class="btn-ghost" id="articlePreviewClose" type="button">关闭预览</button></div>
+        <article class="article-reading-preview article-reading-layout article-reading-preview--stacked article-reading-layout--stacked">
+          <div class="article-reading-header" id="articlePreviewHeader"></div>
+          <div class="article-reading-body" id="articlePreviewBody"></div>
+          <section class="article-removed-tail hidden" id="articlePreviewRemovedSection">
+            <div class="article-removed-tail-head">
+              <div><strong>自动识别的尾部内容</strong><span id="articlePreviewCleanupSummary"></span></div>
+              <button class="btn-ghost" id="articlePreviewRestoreTail" type="button">恢复尾部</button>
+            </div>
+            <div class="article-reading-body article-removed-tail-body" id="articlePreviewRemovedBody"></div>
+          </section>
+        </article>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="articleEditorModal" role="dialog" aria-modal="true" aria-labelledby="articleEditorTitle">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body article-editor-modal-body">
+        <div class="article-modal-head modal-editor-head">
+          <div class="modal-editor-heading">
+            <h3 id="articleEditorTitle">新增文章</h3>
+            <p class="panel-subtitle" id="articleEditorStatus">保存后将立即发布到当前内容池。</p>
+          </div>
+          <div class="article-modal-actions modal-editor-actions">
+            <button class="btn-ghost" id="articleEditorCancel" type="button">取消</button>
+            <button class="btn-primary" id="articlePublishBtn" type="button">保存</button>
+          </div>
+        </div>
+        <div class="article-editor-grid">
+          <div class="article-editor-main">
+            <div class="form-field"><textarea class="article-import-title-editor" id="articleTitleInput" rows="3" maxlength="120" aria-label="文章标题" placeholder="输入文章标题"></textarea></div>
+            <div class="form-field article-body-field">
+              <textarea class="article-body-editor article-import-markdown-editor" id="articleBodyEditor" rows="20" aria-label="文章正文（Markdown）" placeholder="输入文章正文，支持 Markdown 标题、段落、加粗、引用、列表、链接、图片、分隔线和代码"></textarea>
+            </div>
+          </div>
+          <aside class="article-editor-meta">
+            <div class="form-field" role="group" aria-label="文章封面">
+              <input id="articleCoverInput" type="hidden" />
+              <input class="hidden" id="articleCoverUploadInput" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+              <div class="article-cover-preview">
+                <div class="article-cover-media" id="articleCoverPreview"><span>暂无封面</span></div>
+                <!-- Lucide Static v0.468.0 (ISC): image-up, trash-2. -->
+                <div class="article-cover-tools">
+                  <button class="article-cover-tool-button" id="articleCoverUploadBtn" type="button" aria-label="上传封面" title="上传封面">
+                    <svg class="article-cover-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.3 21H5a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v8.3"/><path d="m16 19 3-3 3 3"/><path d="M19 22v-6"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+                  </button>
+                  <button class="article-cover-tool-button article-cover-tool-button--danger hidden" id="articleCoverRemoveBtn" type="button" aria-label="删除封面" title="删除封面">
+                    <svg class="article-cover-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                  </button>
+                </div>
+              </div>
+              <span class="article-cover-upload-status" id="articleCoverUploadStatus" aria-live="polite"></span>
+            </div>
+            <div class="article-editor-meta-row">
+              <div class="form-field"><input id="articleAuthorInput" maxlength="80" aria-label="文章作者" placeholder="请输入文章作者（可留空）"></div>
+              <div class="form-field article-editor-publish-row"><input id="articlePublishAtInput" type="datetime-local" aria-label="发布时间" /></div>
+            </div>
+            <div class="form-field article-editor-preview-field">
+              <div class="article-import-reading-card-viewport article-editor-preview-viewport">
+                <article class="article-reading-preview article-reading-layout article-reading-preview--stacked article-reading-layout--stacked article-reading-card-scroll" id="articleEditorPreviewCard">
+                  <div class="article-reading-header" id="articleEditorPreviewHeader"></div>
+                  <div class="article-reading-body" id="articleEditorPreviewBody"></div>
+                </article>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="confirmModal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body">
+        <h3 id="confirmTitle">确认操作</h3>
+        <p id="confirmMessage" class="confirm-message">操作后将立即生效。</p>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="confirmCancel" type="button">取消</button>
+          <button class="btn-primary" id="confirmOk" type="button">确认</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="groupManagerModal" role="dialog" aria-modal="true" aria-labelledby="groupManagerTitle">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body group-manager-modal-body">
+        <div class="modal-editor-head"><h3 id="groupManagerTitle">设置分组</h3><div class="modal-editor-actions"><button class="btn-ghost" id="groupManagerCancel" type="button">取消</button><button class="btn-primary" id="groupManagerSave" type="button">保存</button></div></div>
+        <p class="modal-hint">可新增、重命名或删除分组；删除分组后，其中的小程序会回到未分组。</p>
+        <p class="status hidden" id="groupManagerStatus" role="status"></p>
+        <div id="groupManagerList" class="group-manager-list"></div>
+        <div class="form-field group-manager-add"><label for="groupManagerNewName">新增分组</label><div class="group-manager-add-row"><input id="groupManagerNewName" type="text" maxlength="30" placeholder="输入分组名称" /><button class="btn-ghost" id="groupManagerAdd" type="button">添加</button></div></div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="groupAssignModal" role="dialog" aria-modal="true" aria-labelledby="groupAssignTitle">
+      <div class="modal-backdrop"></div>
+      <div class="modal-body group-assign-modal-body">
+        <div class="modal-editor-head"><h3 id="groupAssignTitle">修改分组</h3><div class="modal-editor-actions"><button class="btn-ghost" id="groupAssignCancel" type="button">取消</button><button class="btn-primary" id="groupAssignSave" type="button">保存</button></div></div>
+        <div class="form-field"><label for="groupAssignSelect">分组</label><select id="groupAssignSelect"><option value="">未分组</option></select></div>
+        <p class="status hidden" id="groupAssignStatus" role="status"></p>
+      </div>
+    </div>
+
+    <div class="admin-toast hidden" id="adminToast" role="status"></div>
+    <section class="admin-audio-player hidden" id="adminAudioPlayer" aria-label="音频播放器">
+      <div class="admin-audio-player-head">
+        <strong class="admin-audio-player-title" id="adminAudioTitle">未选择音频</strong>
+      </div>
+      <div class="admin-audio-control-row">
+        <div class="admin-audio-clock">
+          <strong id="adminAudioCurrent">00:00</strong>
+          <span id="adminAudioStatus" aria-live="polite">点击试听</span>
+        </div>
+        <button class="admin-audio-restart" id="adminAudioRestart" type="button" aria-label="从头播放" title="从头播放">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12A9 9 0 1 0 12 3A9.75 9.75 0 0 0 5.26 5.74L3 8"/><path d="M3 3V8H8"/></svg>
+        </button>
+        <button class="admin-audio-play" id="adminAudioToggle" type="button" aria-label="播放音频" title="播放音频">
+          <svg class="admin-audio-icon-play" data-audio-icon-play viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5A2 2 0 0 1 8.008 3.272L20.005 10.27A2 2 0 0 1 20.008 13.728L8.008 20.728A2 2 0 0 1 5 19Z"/></svg>
+          <svg class="admin-audio-icon-pause hidden" data-audio-icon-pause viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+        </button>
+      </div>
+      <div class="admin-audio-player-bottom">
+        <div class="admin-audio-ticks" aria-hidden="true"><i class="is-long"></i><i class="is-short"></i><i class="is-short"></i><i class="is-long"></i><i class="is-short"></i><i class="is-long"></i><i class="is-short"></i><i class="is-short"></i><i class="is-long"></i><i class="is-short"></i><i class="is-long"></i><i class="is-short"></i><i class="is-short"></i><i class="is-long"></i><i class="is-short"></i><i class="is-long"></i><i class="is-short"></i><i class="is-short"></i><i class="is-long"></i></div>
+        <input id="adminAudioProgress" class="admin-audio-progress" type="range" min="0" max="0" step="0.1" value="0" aria-label="音频播放进度" disabled />
+        <div class="admin-audio-timing"><span id="adminAudioRemaining">剩余 00:00</span><span id="adminAudioDuration">00:00</span></div>
+      </div>
+    </section>
+    <script src="./main.js"></script>
+    <script src="./article-manager.js"></script>
+    <script src="./import.js"></script>
+    <script src="./shell.js"></script>
+  </body>
+</html>

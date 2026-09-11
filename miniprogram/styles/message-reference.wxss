@@ -1,0 +1,7 @@
+.reference-card {
+  box-sizing: border-box;
+  padding: 16rpx;
+  border-left: 4rpx solid var(--color-accent-fill);
+  border-radius: var(--media-radius);
+  background: var(--color-card-soft);
+}

@@ -1,0 +1,22 @@
+.skeleton {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.skeleton-row {
+  height: 24rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(100deg, #ebdfd2 20%, #f8f1e9 42%, #ebdfd2 64%);
+  background-size: 260% 100%;
+}
+
+.skeleton--animate .skeleton-row {
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 0; opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { background-position: -100% 0; opacity: 0.7; }
+}

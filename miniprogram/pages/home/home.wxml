@@ -1,0 +1,249 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+<block wx:if="{{homeAccessResolved}}">
+<immersive-nav variant="home" title="{{homeHeroText}}" hero="{{true}}"></immersive-nav>
+<view class="page home-page">
+  <view class="card card-soft daily-content-card stack {{dailyContent ? 'daily-content-card--with-actions' : ''}}">
+    <block wx:if="{{!dailyContent}}">
+      <view class="daily-content-ready">
+        <view class="daily-content-ready-head">
+          <view class="daily-content-ready-intro">
+            <text class="tag">专属内容</text>
+            <view class="daily-content-prompt">
+              <text class="daily-content-prompt-line">{{dailyContentPrompt.firstLine}}</text>
+              <text class="daily-content-prompt-line">{{dailyContentPrompt.secondLine}}</text>
+            </view>
+          </view>
+          <image class="daily-content-postmark" mode="widthFix" src="/assets/icons/daily-content-postmark.svg"></image>
+        </view>
+        <button class="button-primary {{dailyContentLoading || sharedDailyContentChecking ? 'is-loading' : ''}}" disabled="{{dailyContentLoading || sharedDailyContentChecking}}" bindtap="handleDailyContentPrimaryAction">
+          <view wx:if="{{dailyContentLoading || sharedDailyContentChecking}}" class="button-loading-dots button-loading-dots--light"><view></view><view></view><view></view></view>
+          <text wx:else>{{dailyContentButtonText}}</text>
+        </button>
+      </view>
+    </block>
+
+    <block wx:elif="{{dailyContent.isText}}">
+      <view class="between daily-content-card-header">
+        <text class="tag">手记</text>
+        <view class="compact-next-button" hover-class="compact-next-button--pressed" aria-role="button" aria-label="换一篇手记内容" aria-disabled="{{dailyContentLoading}}" bindtap="handleChangeDailyContent">
+          <text>{{dailyContentLoading ? '加载中' : '换一篇'}}</text>
+        </view>
+      </view>
+      <view class="note-copy paragraph-list">
+        <text wx:for="{{dailyContent.textParagraphs}}" wx:key="*this">{{item}}</text>
+      </view>
+      <view wx:if="{{messagesEnabled && dailyContentMessage}}" class="message-box">
+        <view class="message-box-header">
+          <text class="message-label">我的留言</text>
+          <text class="message-label message-delete {{messageDeleting ? 'is-disabled' : ''}}" aria-role="button" aria-label="{{messageDeleting ? '正在删除留言' : '删除留言'}}" aria-disabled="{{messageDeleting}}" bindtap="handleDeleteMessage">删除</text>
+        </view>
+        <text class="message-text">{{dailyContentMessage}}</text>
+      </view>
+      <view wx:if="{{messagesEnabled && dailyContentMessageVisible}}" class="message-box">
+        <textarea class="message-input" auto-height maxlength="-1" placeholder="写下你想说的话…" placeholder-class="message-input-placeholder" value="{{messageText}}" bindinput="handleMessageInput"></textarea>
+        <view class="message-input-row">
+          <text class="message-label">留言仅你和对方可见</text>
+          <button class="message-submit {{messageSubmitting ? 'is-loading' : ''}}" aria-label="{{messageSubmitting ? '正在提交留言' : '确认留言'}}" disabled="{{messageSubmitting || !messageText.length}}" bindtap="handleSubmitMessage"><view wx:if="{{messageSubmitting}}" class="button-loading-dots button-loading-dots--light"><view></view><view></view><view></view></view><text wx:else>确认</text></button>
+        </view>
+      </view>
+      <view wx:if="{{showDailyContentSubscribe}}" class="sub-prompt">
+        <text class="text">有新内容时，要及时提醒你吗</text>
+        <button class="button-ghost small-button" bindtap="handleDailyContentSubscribe">授权提醒</button>
+      </view>
+      <view class="action-bar-surface">
+        <view class="action-bar">
+        <button class="action-pill action-button {{liked ? 'active' : ''}}" hover-class="action-pill--pressed" bindtap="toggleLike"><image class="action-icon" src="{{liked ? '/assets/icons/action-heart-active.svg' : '/assets/icons/action-heart.svg'}}"></image><text>{{dailyContent.displayLikeCount || '点赞'}}</text></button>
+        <button class="action-pill action-button {{favorited ? 'active' : ''}}" hover-class="action-pill--pressed" bindtap="toggleFavorite"><image class="action-icon" src="{{favorited ? '/assets/icons/action-bookmark-active.svg' : '/assets/icons/action-bookmark.svg'}}"></image><text>{{dailyContent.displayFavoriteCount || '收藏'}}</text></button>
+        <button wx:if="{{messagesEnabled}}" class="action-pill action-button" bindtap="toggleDailyContentMessage"><image class="action-icon" src="/assets/icons/action-message.svg"></image><text>留言</text></button>
+        <button class="action-pill action-button" open-type="share" data-share="text"><image class="action-icon" src="/assets/icons/action-share.svg"></image><text>分享</text></button>
+        </view>
+      </view>
+    </block>
+
+    <block wx:elif="{{dailyContent.isAudio}}">
+      <view class="between daily-content-card-header">
+        <text class="tag">音频</text>
+        <view class="compact-next-button" hover-class="compact-next-button--pressed" bindtap="handleChangeDailyContent">
+          <text>{{dailyContentLoading ? '加载中' : '换一篇'}}</text>
+        </view>
+      </view>
+      <view class="audio-player {{audio.isBuffering ? 'is-buffering' : ''}}">
+        <view class="audio-player-head">
+          <view id="audioTitle" class="audio-title"><text id="audioTitleText" class="audio-title-text {{audio.titleScrolling ? 'is-scrolling' : ''}}" style="{{audio.titleStyle}}">{{audio.title}}</text></view>
+        </view>
+        <view class="audio-control-row">
+          <view class="audio-clock">
+            <text class="audio-current-time">{{audio.currentTime}}</text>
+            <text class="audio-status">{{audio.status}}</text>
+          </view>
+          <view class="audio-restart-button {{audio.isBuffering || !dailyContent.audioUrl ? 'is-disabled' : ''}} {{audio.restartAnimating ? 'is-restarting' : ''}}" hover-class="audio-restart-button--pressed" aria-role="button" aria-label="从头播放" aria-disabled="{{audio.isBuffering || !dailyContent.audioUrl}}" bindtap="handleAudioRestart">
+            <image class="audio-restart-icon" src="/assets/icons/audio-restart.svg" mode="aspectFit"></image>
+          </view>
+          <view class="audio-play-button {{audio.isBuffering || !dailyContent.audioUrl ? 'is-disabled' : ''}} {{audio.playAnimating ? 'is-pressing' : ''}}" hover-class="audio-play-button--pressed" aria-role="button" aria-label="{{audio.isPlaying ? '暂停音频' : '播放音频'}}" aria-disabled="{{audio.isBuffering || !dailyContent.audioUrl}}" bindtap="handleAudioToggle">
+            <image class="audio-play-icon" src="{{audio.isPlaying ? '/assets/icons/audio-pause.svg' : '/assets/icons/audio-play.svg'}}" mode="aspectFit"></image>
+          </view>
+        </view>
+        <view class="audio-player-bottom">
+          <view class="audio-ticks" aria-hidden="true"><view wx:for="{{audioTicks}}" wx:key="id" class="audio-tick {{item.long ? 'is-long' : 'is-short'}}"></view></view>
+          <view id="audioProgress" class="audio-progress" bindtap="handleAudioSeek" aria-label="音频播放进度"><view class="audio-progress-fill" style="width: {{audio.durationSeconds ? (audio.currentSeconds / audio.durationSeconds * 100) : 0}}%;"></view></view>
+          <view class="audio-timing"><text>{{audio.remaining}}</text><text>{{audio.duration}}</text></view>
+        </view>
+      </view>
+      <view wx:if="{{messagesEnabled && dailyContentMessage}}" class="message-box">
+        <view class="message-box-header">
+          <text class="message-label">我的留言</text>
+          <text class="message-label message-delete {{messageDeleting ? 'is-disabled' : ''}}" aria-role="button" aria-label="{{messageDeleting ? '正在删除留言' : '删除留言'}}" aria-disabled="{{messageDeleting}}" bindtap="handleDeleteMessage">删除</text>
+        </view>
+        <text class="message-text">{{dailyContentMessage}}</text>
+      </view>
+      <view wx:if="{{messagesEnabled && dailyContentMessageVisible}}" class="message-box">
+        <textarea class="message-input" auto-height maxlength="-1" placeholder="写下你想说的话…" placeholder-class="message-input-placeholder" value="{{messageText}}" bindinput="handleMessageInput"></textarea>
+        <view class="message-input-row">
+          <text class="message-label">留言仅你和对方可见</text>
+          <button class="message-submit {{messageSubmitting ? 'is-loading' : ''}}" aria-label="{{messageSubmitting ? '正在提交留言' : '确认留言'}}" disabled="{{messageSubmitting || !messageText.length}}" bindtap="handleSubmitMessage"><view wx:if="{{messageSubmitting}}" class="button-loading-dots button-loading-dots--light"><view></view><view></view><view></view></view><text wx:else>确认</text></button>
+        </view>
+      </view>
+      <view wx:if="{{showDailyContentSubscribe}}" class="sub-prompt">
+        <text class="text">有新内容时，要及时提醒你吗</text>
+        <button class="button-ghost small-button" bindtap="handleDailyContentSubscribe">授权提醒</button>
+      </view>
+      <view class="action-bar-surface">
+        <view class="action-bar">
+        <button class="action-pill action-button {{liked ? 'active' : ''}}" hover-class="action-pill--pressed" bindtap="toggleLike"><image class="action-icon" src="{{liked ? '/assets/icons/action-heart-active.svg' : '/assets/icons/action-heart.svg'}}"></image><text>{{dailyContent.displayLikeCount || '点赞'}}</text></button>
+        <button class="action-pill action-button {{favorited ? 'active' : ''}}" hover-class="action-pill--pressed" bindtap="toggleFavorite"><image class="action-icon" src="{{favorited ? '/assets/icons/action-bookmark-active.svg' : '/assets/icons/action-bookmark.svg'}}"></image><text>{{dailyContent.displayFavoriteCount || '收藏'}}</text></button>
+        <button wx:if="{{messagesEnabled}}" class="action-pill action-button" bindtap="toggleDailyContentMessage"><image class="action-icon" src="/assets/icons/action-message.svg"></image><text>留言</text></button>
+        <button class="action-pill action-button" open-type="share" data-share="audio"><image class="action-icon" src="/assets/icons/action-share.svg"></image><text>分享</text></button>
+        </view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="between daily-content-card-header album-header">
+        <text class="tag">图册</text>
+        <view class="compact-next-button" hover-class="compact-next-button--pressed" aria-role="button" aria-label="换一篇手记内容" aria-disabled="{{dailyContentLoading}}" bindtap="handleChangeDailyContent">
+          <text>{{dailyContentLoading ? '加载中' : '换一篇'}}</text>
+        </view>
+      </view>
+      <view class="album-shell">
+        <view class="album-frame">
+          <swiper class="album-swiper" current="{{currentAlbumIndex}}" duration="260" circular="{{false}}" bindchange="handleAlbumChange">
+            <swiper-item wx:for="{{dailyContent.images}}" wx:key="id">
+              <view class="album-photo" data-image-index="{{index}}" bindtap="openAlbumPreview">
+                <image wx:if="{{item.displayUrl}}" class="album-image" mode="aspectFill" src="{{item.displayUrl}}" data-index="{{index}}" data-src="{{item.displayUrl}}" bindload="handleAlbumImageLoad" binderror="handleAlbumImageError"></image>
+                <view wx:if="{{item.displayLoading}}" class="album-image-state">加载中…</view>
+                <view wx:elif="{{!item.displayUrl}}" class="album-image-state">图片加载失败</view>
+              </view>
+            </swiper-item>
+          </swiper>
+        </view>
+        <button class="album-nav album-nav--prev" plain disabled="{{currentAlbumIndex === 0}}" hover-class="album-nav--pressed" aria-label="上一张图片" bindtap="showPrevAlbumImage"><image class="album-nav-icon" src="/assets/icons/chevron-left.svg" mode="aspectFit"></image></button>
+        <button class="album-nav album-nav--next" plain disabled="{{currentAlbumIndex >= dailyContent.images.length - 1}}" hover-class="album-nav--pressed" aria-label="下一张图片" bindtap="showNextAlbumImage"><image class="album-nav-icon" src="/assets/icons/chevron-right.svg" mode="aspectFit"></image></button>
+      </view>
+      <view class="album-controls">
+        <view class="compact-next-button album-total"><text>共 {{dailyContent.images.length}} 张</text></view>
+        <view class="album-dots"><view wx:for="{{dailyContent.images}}" wx:key="id" class="album-dot {{index === currentAlbumIndex ? 'is-active' : ''}}"></view></view>
+        <view class="compact-next-button album-save" hover-class="compact-next-button--pressed" aria-role="button" aria-label="保存本图册全部原图" bindtap="saveAlbumOriginals"><text>保存原图</text></view>
+      </view>
+      <view wx:if="{{messagesEnabled && dailyContentMessage}}" class="message-box">
+        <view class="message-box-header">
+          <text class="message-label">我的留言</text>
+          <text class="message-label message-delete {{messageDeleting ? 'is-disabled' : ''}}" aria-role="button" aria-label="{{messageDeleting ? '正在删除留言' : '删除留言'}}" aria-disabled="{{messageDeleting}}" bindtap="handleDeleteMessage">删除</text>
+        </view>
+        <text class="message-text">{{dailyContentMessage}}</text>
+      </view>
+      <view wx:if="{{messagesEnabled && dailyContentMessageVisible}}" class="message-box">
+        <textarea class="message-input" auto-height maxlength="-1" placeholder="写下你想说的话…" placeholder-class="message-input-placeholder" value="{{messageText}}" bindinput="handleMessageInput"></textarea>
+        <view class="message-input-row">
+          <text class="message-label">留言仅你和对方可见</text>
+          <button class="message-submit {{messageSubmitting ? 'is-loading' : ''}}" aria-label="{{messageSubmitting ? '正在提交留言' : '确认留言'}}" disabled="{{messageSubmitting || !messageText.length}}" bindtap="handleSubmitMessage"><view wx:if="{{messageSubmitting}}" class="button-loading-dots button-loading-dots--light"><view></view><view></view><view></view></view><text wx:else>确认</text></button>
+        </view>
+      </view>
+      <view wx:if="{{showDailyContentSubscribe}}" class="sub-prompt">
+        <text class="text">有新内容时，要及时提醒你吗</text>
+        <button class="button-ghost small-button" bindtap="handleDailyContentSubscribe">授权提醒</button>
+      </view>
+      <view class="action-bar-surface">
+        <view class="action-bar">
+        <button class="action-pill action-button {{liked ? 'active' : ''}}" hover-class="action-pill--pressed" bindtap="toggleLike"><image class="action-icon" src="{{liked ? '/assets/icons/action-heart-active.svg' : '/assets/icons/action-heart.svg'}}"></image><text>{{dailyContent.displayLikeCount || '点赞'}}</text></button>
+        <button class="action-pill action-button {{favorited ? 'active' : ''}}" hover-class="action-pill--pressed" bindtap="toggleFavorite"><image class="action-icon" src="{{favorited ? '/assets/icons/action-bookmark-active.svg' : '/assets/icons/action-bookmark.svg'}}"></image><text>{{dailyContent.displayFavoriteCount || '收藏'}}</text></button>
+        <button wx:if="{{messagesEnabled}}" class="action-pill action-button" bindtap="toggleDailyContentMessage"><image class="action-icon" src="/assets/icons/action-message.svg"></image><text>留言</text></button>
+        <button class="action-pill action-button" open-type="share" data-share="album"><image class="action-icon" src="/assets/icons/action-share.svg"></image><text>分享</text></button>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view wx:if="{{homeNativePlacement === 'dailyContent' && ads.homeNative.enabled && ads.homeNative.adUnitId}}" hidden="{{nativeAdHidden}}" class="card ad-card native-template-ad {{nativeAdReady ? '' : 'native-template-ad--loading'}} {{nativeAdHidden ? 'native-template-ad--hidden' : ''}}">
+    <ad-custom unit-id="{{ads.homeNative.adUnitId}}" bindload="handleNativeAdLoad" binderror="handleNativeAdError"></ad-custom>
+  </view>
+
+  <view class="card checkin-card">
+    <view wx:if="{{!checkInState.checkedToday}}" class="checkin-ready">
+      <view class="inline-stack">
+        <text class="eyebrow">阅读打卡</text>
+        <text class="title-md">{{checkinBeforeText}}</text>
+        <text class="checkin-summary">连续 {{checkInState.streakDays || 0}} 天 · 累计 {{checkInState.totalDays || 0}} 次</text>
+      </view>
+      <view class="checkin-actions">
+        <button class="button-secondary {{checkinLoading ? 'is-loading' : ''}}" disabled="{{checkinLoading}}" bindtap="handleCheckIn">
+          <view wx:if="{{checkinLoading}}" class="button-loading-dots button-loading-dots--accent"><view></view><view></view><view></view></view>
+          <text wx:else>{{checkinButtonText}}</text>
+        </button>
+        <text wx:if="{{checkinRewardValue > 0}}" class="checkin-reward">阅读值 +{{checkinRewardValue}}</text>
+      </view>
+    </view>
+    <view wx:else class="checkin-success">
+      <text class="title-lg">打卡成功</text>
+      <view class="calendar-grid">
+        <view wx:for="{{calendarDays}}" wx:key="date" class="calendar-day {{item.checked ? 'is-done' : ''}} {{item.today ? 'is-today' : ''}}">
+          <text class="calendar-date">{{item.day}}</text>
+          <text class="calendar-lunar">{{item.lunarLabel}}</text>
+        </view>
+      </view>
+      <text class="checkin-after-text">{{checkinAfterText}}</text>
+      <view wx:if="{{showCheckinSubscribe}}" class="sub-prompt">
+        <text class="text">明天这时候，要提醒你打卡吗</text>
+        <button class="button-ghost small-button" bindtap="handleCheckinSubscribe">授权提醒</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{homeNativePlacement === 'checkIn' && ads.homeNative.enabled && ads.homeNative.adUnitId}}" hidden="{{nativeAdHidden}}" class="card ad-card native-template-ad {{nativeAdReady ? '' : 'native-template-ad--loading'}} {{nativeAdHidden ? 'native-template-ad--hidden' : ''}}">
+    <ad-custom unit-id="{{ads.homeNative.adUnitId}}" bindload="handleNativeAdLoad" binderror="handleNativeAdError"></ad-custom>
+  </view>
+
+  <view wx:if="{{stats.length}}" class="stats-row home-stats-row stats-row--{{stats.length}}">
+    <view wx:for="{{stats}}" wx:key="key" class="stat-cell">
+      <view class="stat-value"><text>{{item.displayValue}}</text><text wx:if="{{item.displayUnit}}" class="stat-unit">{{item.displayUnit}}</text></view>
+      <text class="stat-label">{{item.label}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{homeNativePlacement === 'stats' && ads.homeNative.enabled && ads.homeNative.adUnitId}}" hidden="{{nativeAdHidden}}" class="card ad-card native-template-ad {{nativeAdReady ? '' : 'native-template-ad--loading'}} {{nativeAdHidden ? 'native-template-ad--hidden' : ''}}">
+    <ad-custom unit-id="{{ads.homeNative.adUnitId}}" bindload="handleNativeAdLoad" binderror="handleNativeAdError"></ad-custom>
+  </view>
+
+  <loading-state wx:if="{{showSkeleton}}" rows="3" row-width="100%, 84%, 68%" label="正在加载"></loading-state>
+  <view wx:if="{{error}}" class="card state-card"><text class="muted">{{error}}</text></view>
+</view>
+  <view wx:if="{{phoneSyncPromptVisible}}" class="phone-sync-prompt-overlay" catchtouchmove="preventPhoneSyncPromptScroll">
+    <view class="phone-sync-prompt-sheet" role="dialog" aria-modal="true" aria-label="同步你的记录">
+      <view class="phone-sync-prompt-copy">
+        <text class="phone-sync-prompt-title">手机号快捷登录</text>
+        <text class="phone-sync-prompt-text">完成手机号快捷登录后，可在多个小程序中同步你的记录。</text>
+      </view>
+      <view class="phone-sync-prompt-actions">
+        <button class="phone-sync-prompt-button phone-sync-prompt-decline" disabled="{{phoneSyncAuthorizing}}" bindtap="handlePhoneSyncDecline">暂不</button>
+        <button class="phone-sync-prompt-button phone-sync-prompt-authorize" loading="{{phoneSyncAuthorizing}}" disabled="{{phoneSyncAuthorizing}}" open-type="getPhoneNumber" bindgetphonenumber="handlePhoneSyncAuthorize">同意并继续</button>
+      </view>
+    </view>
+  </view>
+  <canvas id="shareCanvas" canvas-id="shareCanvas" type="2d" class="share-card-canvas"></canvas>
+</block>
+<view wx:else class="home-startup-gate">
+  <immersive-nav variant="home" title="" hero="{{true}}"></immersive-nav>
+  <view class="home-startup-loading">
+    <loading-state rows="3" row-width="100%, 84%, 68%" label="正在加载"></loading-state>
+  </view>
+</view>
+</view>

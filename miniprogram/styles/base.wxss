@@ -1,0 +1,107 @@
+.theme {
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", sans-serif;
+  font-size: var(--type-body);
+  line-height: 1.5;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+  padding: var(--page-padding) var(--page-padding) var(--tab-safe-padding);
+  background: var(--color-bg);
+}
+
+.plain-page {
+  min-height: 0;
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.inline-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row,
+.between {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.between {
+  justify-content: space-between;
+}
+
+.title-xl {
+  color: var(--color-text);
+  font-size: var(--type-hero);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.title-lg {
+  color: var(--color-text);
+  font-size: var(--type-title);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.title-md {
+  color: var(--color-text);
+  font-size: var(--type-section);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.text {
+  color: var(--color-text-secondary);
+  font-size: var(--type-body);
+  line-height: 1.65;
+}
+
+.muted {
+  color: var(--color-text-hint);
+  font-size: var(--type-assist);
+  line-height: 1.55;
+}
+
+.eyebrow {
+  color: var(--color-accent-dark);
+  font-size: var(--type-assist);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.empty-state {
+  padding: 96rpx 48rpx;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 128rpx;
+  height: 128rpx;
+}
+
+.empty-state .title-md {
+  color: var(--color-text-secondary);
+  font-size: var(--type-title);
+  font-weight: 500;
+}
+
+.empty-state .muted {
+  font-size: var(--type-control);
+}

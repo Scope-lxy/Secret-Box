@@ -1,0 +1,3 @@
+@import '../../styles/message-reference.wxss';
+
+.reference-audio .history-audio-title { font-size: var(--type-reference); }

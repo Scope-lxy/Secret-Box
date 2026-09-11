@@ -1,0 +1,6 @@
+<view class="reference-card reference-audio">
+  <view class="history-audio-player">
+    <view class="history-audio-copy"><view class="history-audio-title-row"><text class="history-audio-title">{{item.audioTitle}}</text><text class="history-audio-time">{{item.audioCurrentTime}}</text></view><view class="history-audio-progress"><view class="history-audio-progress-fill" style="{{item.audioProgressStyle}}"></view></view></view>
+    <view class="history-audio-play {{!item.audioUrl ? 'is-disabled' : ''}}" data-id="{{item.id}}" bindtap="toggle"><image class="history-audio-icon" src="{{item.audioIsPlaying ? '/assets/icons/audio-pause.svg' : '/assets/icons/audio-play.svg'}}" mode="aspectFit"></image></view>
+  </view>
+</view>

@@ -1,0 +1,112 @@
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.profile-cell {
+  min-height: 112rpx;
+  padding: 0 var(--card-padding-x);
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1rpx solid var(--color-line);
+}
+
+.profile-cell-avatar {
+  min-height: 160rpx;
+}
+
+.profile-cell:last-child {
+  border-bottom: 0;
+}
+
+.profile-cell-label {
+  flex: 0 0 140rpx;
+  color: var(--color-text);
+  font-size: var(--type-section);
+}
+
+.profile-input,
+.profile-phone-button {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  color: var(--color-text-secondary);
+  font-size: var(--type-section);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: right;
+}
+
+button.profile-phone-button {
+  min-height: 80rpx;
+  margin: 0;
+  border: 0;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  background: transparent;
+  font-family: inherit;
+}
+
+.profile-phone-button::after {
+  border: 0;
+}
+
+.profile-phone-action {
+  flex: 0 0 auto;
+  color: var(--color-accent-dark);
+  font-size: var(--type-assist);
+  font-weight: 600;
+}
+
+.avatar {
+  width: 104rpx;
+  min-width: 104rpx;
+  max-width: 104rpx;
+  height: 104rpx;
+  min-height: 104rpx;
+  padding: 0;
+  margin: 0;
+  align-self: center;
+  border-radius: 52rpx;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+  font-size: var(--type-title);
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.profile-cell-avatar .avatar {
+  margin-left: auto;
+  margin-right: 0;
+  flex: 0 0 104rpx;
+}
+
+.avatar-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.save-button {
+  width: 100%;
+  min-width: 100%;
+  align-self: stretch;
+  margin: 0;
+}
+
+.avatar-processing-canvas {
+  position: fixed;
+  top: -2000rpx;
+  left: -2000rpx;
+  width: 2rpx;
+  height: 2rpx;
+  opacity: 0;
+  pointer-events: none;
+}

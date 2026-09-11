@@ -1,0 +1,17 @@
+<view class="theme {{fontSizeMode === 'max' ? 'font-max' : (fontSizeMode === 'larger' ? 'font-larger' : '')}}">
+<immersive-nav variant="plain" title="订阅消息管理" show-title="{{true}}" back="{{true}}"></immersive-nav>
+<view class="page plain-page">
+  <text class="preference-desc">您可以在这里管理已授权的订阅消息。关闭后不再接收对应类型的提醒。</text>
+  <view class="settings-list">
+    <view class="settings-item">
+      <text>新增手记提醒</text>
+      <switch checked="{{subscriptions.newContent}}" color="#d49a68" data-key="newContent" bindchange="handleToggle" />
+    </view>
+    <view class="settings-item">
+      <text>每日打卡提醒</text>
+      <switch checked="{{subscriptions.dailyRemind}}" color="#d49a68" data-key="dailyRemind" bindchange="handleToggle" />
+    </view>
+  </view>
+  <view wx:if="{{error}}" class="card state-card"><text class="muted">{{error}}</text></view>
+</view>
+</view>

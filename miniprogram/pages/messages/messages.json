@@ -1,0 +1,12 @@
+{
+  "navigationBarTitleText": "我的留言",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "expandable-text": "/components/expandable-text/expandable-text",
+    "message-reference-text": "/components/message-reference-text/message-reference-text",
+    "message-reference-article": "/components/message-reference-article/message-reference-article",
+    "message-reference-audio": "/components/message-reference-audio/message-reference-audio",
+    "message-reference-album": "/components/message-reference-album/message-reference-album"
+  }
+}

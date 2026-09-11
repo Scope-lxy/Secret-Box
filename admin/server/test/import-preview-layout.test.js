@@ -1,0 +1,31 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const test = require('node:test')
+
+const adminSource = path.resolve(__dirname, '../admin/src')
+
+test('legacy content imports keep compact album and audio previews without article compatibility branches', () => {
+  const importer = fs.readFileSync(path.join(adminSource, 'import.js'), 'utf8')
+  const styles = fs.readFileSync(path.join(adminSource, 'styles.css'), 'utf8')
+
+  assert.match(importer, /const thumbnails = images\.map\(itemThumbnail\)\.join\(''\)/)
+  assert.doesNotMatch(importer, /const moreCount = Math\.max\(0, images\.length - 4\)/)
+  assert.match(importer, /const mediaPreview = images\.length\s*\? `<div class="import-thumb-list">\$\{thumbnails\}<\/div>`\s*:\s*''/)
+  assert.match(importer, /<article class="import-item import-item-text /)
+  assert.match(importer, /<article class="import-item import-item-media import-item-audio /)
+  assert.match(importer, /import-item-album/)
+  assert.match(importer, /<div class="import-item-actions">\$\{retry\}\$\{removeFailed\}\$\{remove\}<\/div>/)
+  assert.doesNotMatch(importer, /role="(?:row|columnheader)"/)
+  assert.doesNotMatch(importer, /diary|日记/)
+  assert.match(styles, /\.import-item \{\s*display: grid;\s*grid-template-columns: var\(--content-col-id\) minmax\(0, 1fr\) var\(--content-col-actions\);/)
+  assert.match(styles, /\.import-item-actions \{\s*width: var\(--content-col-actions\);\s*display: grid;/)
+  assert.match(styles, /\.import-item-audio \.import-item-body \{\s*grid-template-columns: minmax\(0, 1fr\) var\(--content-col-audio-name\);/)
+  assert.match(styles, /\.import-item-album \.import-item-body \{\s*grid-template-columns: var\(--content-col-label\) minmax\(0, 1fr\) var\(--content-col-album-preview\);/)
+  assert.match(styles, /\.import-item-album \.import-thumb-list \{[\s\S]*?flex-wrap: nowrap;[\s\S]*?overflow-x: auto;/)
+  assert.match(styles, /\.import-item-album \.import-thumb-list img \{\s*flex: 0 0 40px;/)
+  assert.doesNotMatch(styles, /import-diary/)
+
+  const nineAlbumThumbnailsWidth = (9 * 40) + (8 * 6)
+  assert.ok(408 >= nineAlbumThumbnailsWidth, 'content album import preview should fit nine thumbnails on one line')
+})

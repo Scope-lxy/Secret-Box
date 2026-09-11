@@ -1,0 +1,72 @@
+.custom-tabbar {
+  --color-card: #fffaf2;
+  --color-line: rgba(112, 78, 46, 0.14);
+  --color-text-secondary: #8b7461;
+  --color-accent-dark: #a66b42;
+  --type-tab: 22rpx;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  box-sizing: border-box;
+  height: calc(112rpx + env(safe-area-inset-bottom));
+  padding: 0 0 env(safe-area-inset-bottom);
+  display: grid;
+  gap: 0;
+  border-top: 1rpx solid var(--color-line);
+  background: rgba(255, 250, 242, 0.96);
+  box-shadow: 0 -8rpx 24rpx rgba(105, 72, 42, 0.07);
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", sans-serif;
+}
+.custom-tabbar.font-larger { --type-tab: 24rpx; }
+.custom-tabbar.font-max { --type-tab: 26rpx; }
+
+.tab-item-wrap {
+  min-width: 0;
+  display: flex;
+}
+
+.tab-item {
+  box-sizing: border-box;
+  border: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--type-tab);
+  line-height: 1;
+  background: transparent;
+}
+
+.tab-item::after {
+  border: 0;
+}
+
+.tab-item.active {
+  color: var(--color-accent-dark);
+  font-weight: 700;
+}
+
+.tab-icon {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.tab-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-tab);
+  line-height: 1.2;
+}

@@ -1,0 +1,30 @@
+{
+  "name": "secretbox-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "db:migrate": "node scripts/migrate-schema-v6.js",
+    "dev": "node scripts/dev-server.js",
+    "dev:acceptance": "node scripts/dev-acceptance-server.js",
+    "start": "node src/index.js",
+    "db:backup": "node scripts/backup-sqlite.js",
+    "db:clear-user-data": "node scripts/clear-user-data.js",
+    "test": "node --test test/*.test.js",
+    "verify:miniapp": "node scripts/verify-miniprogram.js",
+    "verify:production-prereqs": "node scripts/verify-production-prereqs.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@mozilla/readability": "0.6.0",
+    "better-sqlite3": "13.0.2",
+    "jsdom": "26.1.0",
+    "lunar-javascript": "1.7.7",
+    "markdown-it": "14.3.1",
+    "miniprogram-ci": "2.1.31",
+    "sanitize-html": "2.17.7",
+    "turndown": "7.2.0"
+  }
+}

@@ -1,0 +1,13 @@
+@import "./styles/tokens.wxss";
+@import "./styles/base.wxss";
+@import "./styles/components.wxss";
+
+.share-card-canvas {
+  position: fixed;
+  top: -2000rpx;
+  left: -2000rpx;
+  width: 2rpx;
+  height: 2rpx;
+  opacity: 0;
+  pointer-events: none;
+}

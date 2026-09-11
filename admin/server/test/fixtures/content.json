@@ -1,0 +1,82 @@
+{
+  "contentTexts": [
+    {
+      "id": "content-text-001",
+      "label": "默认",
+      "text": "有些话不用很大声。希望你今天也能被温柔接住，慢慢来，也没有关系。",
+      "likeCount": 18,
+      "favoriteCount": 7
+    }
+  ],
+  "contentAlbums": [
+    {
+      "id": "content-album-001",
+      "label": "窗边的光",
+      "images": [
+        { "id": "img-001" },
+        { "id": "img-002" },
+        { "id": "img-003" }
+      ],
+      "likeCount": 24,
+      "favoriteCount": 11
+    },
+    {
+      "id": "content-album-002",
+      "label": "桌边的花",
+      "images": [
+        { "id": "img-001" },
+        { "id": "img-002" },
+        { "id": "img-003" }
+      ],
+      "likeCount": 16,
+      "favoriteCount": 6
+    }
+  ],
+  "letters": [
+    {
+      "id": "letter-001",
+      "label": "默认",
+      "content": "慢慢来，你已经在认真生活了。",
+      "likeCount": 8,
+      "favoriteCount": 3
+    },
+    {
+      "id": "letter-002",
+      "label": "默认",
+      "content": "如果今天有点累，就把步子放小一点。",
+      "likeCount": 16,
+      "favoriteCount": 5
+    },
+    {
+      "id": "letter-003",
+      "label": "默认",
+      "content": "你不需要把所有事情一次做好，先照顾好这一刻。",
+      "likeCount": 21,
+      "favoriteCount": 9
+    }
+  ],
+  "articles": [
+    {
+      "id": "article-001",
+      "title": "窗边的光",
+      "author": "轻读编辑部",
+      "bodyMarkdown": "今天窗边的光很好，像有人把时间轻轻放慢了一点。",
+      "publishedAt": "2026-06-23T08:00:00.000Z",
+      "coverImage": { "id": "article-cover-001" },
+      "recommended": true,
+      "likeCount": 12,
+      "favoriteCount": 4
+    },
+    {
+      "id": "article-002",
+      "title": "安静地完成一点点",
+      "author": "轻读编辑部",
+      "bodyMarkdown": "今天没有拍图，只想把这句话记下来：能安静地完成一点点，也很好。",
+      "publishedAt": "2026-06-22T08:00:00.000Z",
+      "coverImage": null,
+      "recommended": false,
+      "likeCount": 19,
+      "favoriteCount": 6
+    }
+  ]
+}
