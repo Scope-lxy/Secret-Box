@@ -4,7 +4,7 @@ const path = require('node:path')
 const test = require('node:test')
 
 const importer = fs.readFileSync(path.resolve(__dirname, '../admin/src/import.js'), 'utf8')
-const importGuide = fs.readFileSync(path.resolve(__dirname, '../../docs/content-import.md'), 'utf8')
+  const importGuide = fs.readFileSync(path.resolve(__dirname, '../../../docs/content-import.md'), 'utf8')
 const main = fs.readFileSync(path.resolve(__dirname, '../admin/src/main.js'), 'utf8')
 const page = fs.readFileSync(path.resolve(__dirname, '../admin/src/index.html'), 'utf8')
 
