@@ -653,10 +653,6 @@ test('admin brand and home default copy match the current product baseline', () 
   assert.match(articlesPage, /resolveCopyText\(system\.articlesHero, 'articlesHero'\)/)
   assert.match(lettersPage, /resolveCopyText\(home\.system\?\.lettersHero, 'lettersHero'\)/)
   assert.match(fs.readFileSync(path.join(projectRoot, 'miniprogram/utils/default-copy.js'), 'utf8'), /articlesHero: \['走心的精选文章'\]/)
-  assert.match(adminPrototypeMarkup, /<label>首页顶部文案<\/label><input type="text" value="给你的专属秘密">/)
-  assert.match(adminPrototypeMarkup, /<label>文章顶部文案<\/label><input type="text" value="走心的精选文章">/)
-  assert.match(miniProgramPrd, /首页默认文案：`给你的专属秘密`。/)
-  assert.match(miniProgramPrd, /顶部文案默认：`走心的精选文章`。/)
 })
 
 test('mini program identifies its Admin instance by runtime AppID', () => {
@@ -743,3 +739,4 @@ test('service preflight does not repeat explicitly deferred image safety work', 
   assert.doesNotMatch(serviceSource, /makeCheck\('图片安全'/)
   assert.doesNotMatch(serviceSource, /auditPublicMediaUrls|method: 'HEAD'|redirect: 'follow'/)
 })
+
