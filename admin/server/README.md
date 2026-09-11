@@ -17,7 +17,7 @@ curl http://127.0.0.1:3000/api/health
 
 ## Data Scope Protocol
 
-小程序会话按 AppID 校验；用户资料、签到、打开记录、互动、收藏和留言等数据按 `dataScopeId` 共享或隔离；运营访问与行为统计仍按 `miniProgramId` 归属。具体产品规则以 `../../prototype/prd/PRD-轻读手记后台.md` 和 `../../prototype/prd/PRD-轻读手记小程序端.md` 为准。
+小程序会话按 AppID 校验；用户资料、签到、打开记录、互动、收藏和留言等数据按 `dataScopeId` 共享或隔离；运营访问与行为统计仍按 `miniProgramId` 归属。
 
 客户端先请求 `GET /api/miniapp/config` 取得当前 `dataScopeId`。`POST /api/miniapp/session` 以及所有会写入用户数据的请求，都必须在 `x-miniapp-data-scope` 请求头中回传该值。请求头缺失、过期或伪造时，服务端返回 `409 DATA_SCOPE_CHANGED`，不执行写入，也不产生部分副作用。客户端可以刷新配置，但不得自动重放这次被拒绝的写操作。
 
@@ -25,7 +25,7 @@ curl http://127.0.0.1:3000/api/health
 
 ## Production
 
-生产架构、SQLite 数据保护、运行配置、发布、重建、日志、证书和备份统一以 `../docs/deployment-1panel.md` 为准。部署时同步本次提交的服务端与小程序源码，并按部署手册完成发布前检查、构建和线上验收。微信审核、发布、隐私保护指引和合法域名状态仍以微信公众平台为准。
+生产环境使用 `../deploy/` 下的 Compose、Dockerfile 和环境变量示例；微信审核、发布、隐私保护指引和合法域名状态仍以微信公众平台为准。
 
 `npm run db:backup` 默认不可执行。只有运维人员明确设置位于活动数据目录之外的 `MINIAPP_BACKUP_DIR` 时才允许手动备份；不得将备份写入 `admin/server/data`、生产数据卷或其子目录。
 
@@ -33,6 +33,6 @@ curl http://127.0.0.1:3000/api/health
 
 ## Content Creation and Import
 
-内容池支持私密文案、私密音频、私密图册、心笺和文章。普通内容支持单条新增与批量导入；文章支持编辑和微信公众号 URL 异步导入。字段、格式、去重、重试和接口速查统一见 `../docs/content-import.md`；产品约束见 `../../prototype/prd/PRD-轻读手记后台.md`。
+内容池支持私密文案、私密音频、私密图册、心笺和文章。普通内容支持单条新增与批量导入；文章支持编辑和微信公众号 URL 异步导入。字段、格式、去重、重试和接口速查统一见 `../docs/content-import.md`。
 
-服务端负责 AppID 会话校验、数据范围校验、内容与广告配置、内容安全和管理后台 API。普通本地图片由浏览器直传 COS 并登记素材；公众号文章导入的远程正文图和封面由服务端校验、下载后转存 COS。音频经服务端处理后写入 COS；具体上传和封面规则见 `../docs/content-import.md`，部署边界见 `../docs/deployment-1panel.md`。
+服务端负责 AppID 会话校验、数据范围校验、内容与广告配置、内容安全和管理后台 API。普通本地图片由浏览器直传 COS 并登记素材；公众号文章导入的远程正文图和封面由服务端校验、下载后转存 COS。音频经服务端处理后写入 COS；具体上传和封面规则见 `../docs/content-import.md`。
