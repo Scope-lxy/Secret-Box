@@ -24,16 +24,18 @@ test('审核模式一键预设：激励广告免广告 3 次、插屏关闭、�
   const body = presetBody('audit')
   assert.match(body, new RegExp(`freeCount\\.value = isAudit \\? '${AUDIT_FREE_COUNT}' : '0'`))
   assert.match(body, /messagesEnabled\.value = isAudit \? 'disabled' : 'enabled'/)
-  assert.match(body, /enabled\.checked = !isAudit/)
+  assert.match(body, /if \(isAudit && enabled\) enabled\.checked = false/)
   assert.match(body, /homeVisible\.checked = !isAudit/)
   assert.match(body, /dailyContentLimit\.value = isAudit \? '0' : '5'/)
 })
 
-test('正常模式一键预设：免广告次数回到 0 且所有插屏与首页恢复', () => {
+test('正常模式一键预设：免广告次数回到 0、开启其他广告且保留三个插屏当前状态', () => {
   const body = presetBody('default')
-  // 非审核分支：freeCount 归 0、非审核时全部启用
+  // 非审核分支：freeCount 归 0，保留指定插屏开关，其他广告位启用
   assert.match(body, /'0'/)
-  assert.match(body, /if \(!isAudit && enabled\) enabled\.checked = true/)
+  assert.match(body, /normalModePreservedInterstitialKeys\.has\(key\)/)
+  assert.match(body, /!normalModePreservedInterstitialKeys\.has\(key\) && enabled\) enabled\.checked = true/)
+  assert.match(body, /\} else if \(!isAudit && enabled\) \{\s*enabled\.checked = true/)
 })
 
 test('模式预设只改允许的字段，不得触碰音频、图册、Tab 标签等配置', () => {

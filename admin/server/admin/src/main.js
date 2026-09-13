@@ -20,6 +20,10 @@ const adPageKeys = {
   mine: ['mineNative', 'mineInterstitial'],
 }
 
+// Normal mode leaves these interstitial slots at their current values so an
+// operator's deliberate choice is not overwritten by the preset.
+const normalModePreservedInterstitialKeys = new Set(['homeInterstitial', 'articleInterstitial', 'mineInterstitial'])
+
 // Keep newly introduced article placements visible while an older Admin response is still in use.
 const articleAdEditorDefaults = {
   articlesNative: { enabled: true, adUnitId: '', label: '文章原生模板广告', adType: 'native', firstAfter: 3, interval: 10 },
@@ -4138,9 +4142,11 @@ function applyModePreset(mode) {
       if (freeCount) freeCount.value = isAudit ? '3' : '0'
     }
     if (item.adType === 'interstitial') {
-      if (enabled) enabled.checked = !isAudit
+      if (isAudit && enabled) enabled.checked = false
+      if (!isAudit && !normalModePreservedInterstitialKeys.has(key) && enabled) enabled.checked = true
+    } else if (!isAudit && enabled) {
+      enabled.checked = true
     }
-    if (!isAudit && enabled) enabled.checked = true
   })
 
   const homeVisible = document.querySelector('[data-tab-visible="home"]')
