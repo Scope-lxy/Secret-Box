@@ -8,35 +8,43 @@
   const typeConfig = {
     text: {
       contentType: 'contentTexts',
-      hint: '导入 TXT 文本，每段内容会成为一条文案手记。',
-      sourceHint: '用空行、序号或 --- 分隔多条文案。',
+      hint: '批量导入 TXT，每段一条文案手记。',
+      sourceHint: '用空行、序号或 --- 分段。',
       noun: '条',
       source: 'text',
+      fileLabel: 'TXT 文件',
+      extensions: ['txt'],
     },
     audio: {
       contentType: 'contentAudios',
-      hint: '导入多个音频文件，每个文件会成为一条音频手记。',
-      sourceHint: '支持 MP3、M4A，单个文件不超过 50MB。初始标题自动取原始文件名去掉后缀，可在内容管理中修改。',
+      hint: '批量导入音频，每个文件一条手记。',
+      sourceHint: '单文件不超过 50MB，文件名用作标题。',
       noun: '条音频',
       source: 'audio',
+      fileLabel: 'MP3 / M4A 音频',
+      extensions: ['mp3', 'm4a'],
     },
     album: {
       contentType: 'contentAlbums',
-      hint: '导入图片文件夹，每个子目录或同名前缀图片会组成一个图册手记组。',
-      sourceHint: '可识别不同子目录内的图片，或用相同名称加序号作为分组标识，例如 春日01.jpg、春日02.jpg。每组 1-9 张。',
+      hint: '批量导入图片，自动分组为图册手记。',
+      sourceHint: '按子目录或“名称 + 序号”分组，每组 1-9 张。',
       noun: '个图片组',
       source: 'files',
+      fileLabel: 'JPG / JPEG / PNG / WebP / GIF',
+      extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
     },
     article: {
-      hint: '每行粘贴一个公众号文章链接，系统将抓取并转换为统一阅读模式。',
+      hint: '通过文件夹或公众号链接导入文章。',
       source: 'article',
     },
     'letter-copy': {
       contentType: 'letters',
-      hint: '导入 TXT 文本，每段内容会成为一条心笺。',
-      sourceHint: '用空行、序号或 --- 分隔多条内容。导入后默认归入“默认”标签。',
+      hint: '批量导入 TXT，每段一条心笺。',
+      sourceHint: '用空行、序号或 --- 分段，归入“默认”标签。',
       noun: '条',
       source: 'text',
+      fileLabel: 'TXT 文件',
+      extensions: ['txt'],
     },
   }
   let type = 'text'
@@ -48,6 +56,7 @@
     content: null,
     items: [],
     loading: false,
+    readingSource: false,
     locked: false,
     miniProgramId: '',
     operationError: '',
@@ -59,9 +68,10 @@
     showErrors: false,
     skippedContentCount: 0,
     skippedImageCount: 0,
+    skippedFileCount: 0,
     sourceName: '',
     sourceResultStatus: '',
-    sourceText: '',
+    textSources: [],
     splitMode: 'auto',
   }
   const nodes = {
@@ -80,6 +90,7 @@
     selectText: document.querySelector('#importSelectTextBtn'),
     sourceActions: document.querySelector('#importSourceActions'),
     sourceHint: document.querySelector('#importSourceHint'),
+    sourceDrop: document.querySelector('#importSourceDrop'),
     sourceStatus: document.querySelector('#importSourceStatus'),
     sourceTitle: document.querySelector('#importSourceTitle'),
     splitControl: document.querySelector('#importSplitControl'),
@@ -343,10 +354,19 @@
     return new Promise((resolve) => {
       const url = URL.createObjectURL(file)
       const audio = new Audio()
+      let finished = false
       const finish = (value) => {
+        if (finished) return
+        finished = true
+        clearTimeout(timer)
+        audio.onloadedmetadata = null
+        audio.onerror = null
+        audio.removeAttribute('src')
+        audio.load()
         URL.revokeObjectURL(url)
         resolve(Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : 0)
       }
+      const timer = setTimeout(() => finish(0), 10000)
       audio.preload = 'metadata'
       audio.onloadedmetadata = () => finish(audio.duration)
       audio.onerror = () => finish(0)
@@ -469,6 +489,7 @@
 
   function skippedSummary() {
     const parts = []
+    if (state.skippedFileCount) parts.push(`跳过 ${state.skippedFileCount} 个无关文件或辅助目录`)
     if (state.skippedContentCount) parts.push(`跳过 ${state.skippedContentCount} ${typeConfig[type].noun}重复内容`)
     if (state.skippedImageCount) parts.push(`复用 ${state.skippedImageCount} 张重复图片`)
     return parts.join('，')
@@ -596,14 +617,18 @@
   }
 
   async function parseTextSource(selectionGeneration) {
-    const parsed = textBlocks(state.sourceText, state.splitMode)
-    state.items = parsed.blocks.map(normalizeContentText).filter(Boolean).map((content) => (
-      type === 'text'
-        ? { content, errors: content ? [] : ['文案为空'], id: makeId('text-import'), kind: 'text', label: '默认' }
-        : { content, errors: content ? [] : ['文案为空'], id: makeId('letter-import'), kind: 'text', label: '默认' }
-    ))
+    const detected = new Set()
+    state.items = state.textSources.flatMap((source) => {
+      const parsed = textBlocks(source.text, state.splitMode)
+      detected.add(parsed.detected)
+      if (source.error) return [{ content: '', errors: [source.path + '：' + source.error], id: makeId('text-import'), kind: 'text', label: '默认' }]
+      return parsed.blocks.map(normalizeContentText).filter(Boolean).map((content) => ({
+        content, errors: [], id: makeId(type === 'text' ? 'text-import' : 'letter-import'), kind: 'text', label: '默认',
+      }))
+    })
     render()
-    return preflightParsedItems(selectionGeneration, `${state.sourceName} · 已按${parsed.detected}拆分`)
+    const splitDescription = detected.size === 1 ? `按${[...detected][0]}拆分` : '逐文件自动识别分段'
+    return preflightParsedItems(selectionGeneration, `${state.sourceName} · 已${splitDescription}`)
   }
 
   function buildDailyContentImageItems() {
@@ -652,7 +677,9 @@
   }
 
   async function buildDailyContentAudioItems() {
-    return Promise.all(state.records.map(makeAudio))
+    const items = []
+    for (const group of chunkItems(state.records, 4)) items.push(...await Promise.all(group.map(makeAudio)))
+    return items
   }
 
   async function parseFileSource(selectionGeneration) {
@@ -664,35 +691,6 @@
     state.items = items
     render()
     return true
-  }
-
-  async function selectTextFile(file) {
-    if (!file) return
-    const selectionGeneration = beginSourceSelection()
-    revokePreviewUrls()
-    state.completed = false
-    state.items = []
-    state.operationError = ''
-    state.progress = { completed: 0, stage: '', total: 0 }
-    state.records = []
-    state.showErrors = false
-    state.skippedContentCount = 0
-    state.skippedImageCount = 0
-    state.sourceName = file.name
-    state.sourceResultStatus = ''
-    state.sourceText = ''
-    nodes.sourceStatus.textContent = `${file.name} · 正在解析`
-    render()
-    let sourceText
-    try {
-      sourceText = await readTextFile(file)
-    } catch (error) {
-      if (!isCurrentSourceSelection(selectionGeneration)) return
-      throw error
-    }
-    if (!isCurrentSourceSelection(selectionGeneration)) return
-    state.sourceText = sourceText
-    await parseTextSource(selectionGeneration)
   }
 
   async function selectRecords(records, sourceName) {
@@ -708,11 +706,22 @@
     state.skippedImageCount = 0
     state.sourceName = sourceName
     state.sourceResultStatus = ''
-    state.sourceText = ''
+    state.textSources = []
     refreshCommonRoot()
     nodes.sourceStatus.textContent = `${sourceName} · 正在解析`
     let parsed
     try {
+      if (typeConfig[type].source === 'text') {
+        const sources = []
+        for (const record of records) {
+          try { sources.push({ path: record.path, text: await readTextFile(record.file) }) }
+          catch (error) { sources.push({ path: record.path, text: '', error: error.message || 'TXT 读取失败' }) }
+          if (!isCurrentSourceSelection(selectionGeneration)) return
+        }
+        state.textSources = sources
+        await parseTextSource(selectionGeneration)
+        return
+      }
       parsed = await parseFileSource(selectionGeneration)
     } catch (error) {
       if (!isCurrentSourceSelection(selectionGeneration)) return
@@ -720,6 +729,48 @@
     }
     if (!parsed) return
     await preflightParsedItems(selectionGeneration, `${sourceName} · 已识别 ${state.items.length} ${typeConfig[type].noun}`)
+  }
+
+  function folderOptions() {
+    const config = typeConfig[type]
+    return {
+      accept: (record) => config.extensions.includes(fileExt(record.name)) && (config.source !== 'files' || isImageRecord(record)),
+      emptyMessage: `没有找到 ${config.fileLabel}，请检查所选文件夹或切换内容类型`,
+      validate(_record, count) {
+        if (config.source === 'audio' && count > 200) throw new Error('单批最多导入 200 条音频，请选择较小的文件夹或分批选择')
+      },
+    }
+  }
+
+  async function selectSource(readSelection) {
+    if (state.loading || state.checkingDuplicates || state.readingSource || type === 'article' || !state.content) return
+    state.readingSource = true
+    revokePreviewUrls()
+    state.items = []
+    state.records = []
+    state.textSources = []
+    state.sourceName = ''
+    state.sourceResultStatus = ''
+    state.operationError = ''
+    state.completed = false
+    state.skippedFileCount = 0
+    state.skippedContentCount = 0
+    state.skippedImageCount = 0
+    nodes.sourceDrop.classList.remove('is-dragging')
+    nodes.sourceStatus.textContent = '正在读取文件并检查子目录…'
+    render()
+    try {
+      const selection = await readSelection()
+      state.skippedFileCount = selection.skipped
+      const roots = [...new Set(selection.records.map((record) => record.path.split('/')[0]))]
+      const sourceName = (roots.length === 1 ? roots[0] : '已选择来源') + ` · 已读取 ${selection.records.length} 份文件`
+      await selectRecords(selection.records, sourceName)
+    } catch (error) {
+      handleSourceError(error, '文件夹读取失败')
+    } finally {
+      state.readingSource = false
+      renderSummary()
+    }
   }
 
   function itemThumbnail(image) {
@@ -800,6 +851,9 @@
       if (node) node.disabled = locked
     })
     nodes.typeTabs.querySelectorAll('[data-import-type]').forEach((button) => { button.disabled = locked })
+    nodes.sourceDrop.setAttribute('aria-disabled', String(locked || !state.content))
+    nodes.sourceDrop.tabIndex = locked || !state.content ? -1 : 0
+    if (locked) nodes.sourceDrop.classList.remove('is-dragging')
     nodes.previewList.querySelectorAll('button, input, textarea').forEach((node) => { node.disabled = locked })
     if (nodes.targetPool) nodes.targetPool.disabled = locked || state.targetLocked
   }
@@ -833,7 +887,7 @@
     nodes.operationError.textContent = state.operationError
     nodes.operationError.classList.toggle('hidden', !state.operationError)
     const canContinue = state.operationError && !state.batchLimitError && state.items.length && errorItems.length === 0
-    nodes.confirm.disabled = state.loading || state.checkingDuplicates || !state.content || !state.items.length || state.batchLimitError || errorItems.length > 0 || state.completed
+    nodes.confirm.disabled = state.loading || state.readingSource || state.checkingDuplicates || !state.content || !state.items.length || state.batchLimitError || errorItems.length > 0 || state.completed
     nodes.confirm.textContent = state.completed
       ? '导入完成'
       : state.checkingDuplicates
@@ -841,7 +895,7 @@
       : state.loading
         ? (state.progress.stage === 'registering' ? '等待处理中…' : state.progress.stage === 'saving' ? '写入中…' : '上传中…')
         : canContinue ? '继续导入' : '确认导入'
-    setImportLocked(state.loading || state.checkingDuplicates)
+    setImportLocked(state.loading || state.readingSource || state.checkingDuplicates)
   }
 
   function render() {
@@ -1316,11 +1370,11 @@
   function configurePage() {
     const config = typeConfig[type]
     document.querySelector('#importHint').textContent = config.hint
-    nodes.sourceTitle.textContent = config.source === 'audio' ? '选择音频文件' : '选择导入文件'
+    nodes.sourceTitle.textContent = '选择导入文件夹'
     nodes.sourceHint.textContent = config.sourceHint
     nodes.selectText.classList.toggle('hidden', config.source !== 'text')
     nodes.selectAudio.classList.toggle('hidden', config.source !== 'audio')
-    nodes.selectFolder.classList.toggle('hidden', config.source !== 'files')
+    nodes.selectFolder.classList.remove('hidden')
     nodes.splitControl.classList.toggle('hidden', config.source !== 'text')
     nodes.typeTabs.querySelectorAll('[data-import-type]').forEach((button) => {
       const active = button.dataset.importType === type
@@ -1346,13 +1400,15 @@
     state.skippedImageCount = 0
     state.sourceName = ''
     state.sourceResultStatus = ''
-    state.sourceText = ''
+    state.textSources = []
+    state.skippedFileCount = 0
     state.splitMode = 'auto'
     nodes.splitMode.value = 'auto'
     nodes.textFile.value = ''
     nodes.audioFiles.value = ''
     nodes.folderFiles.value = ''
-    nodes.sourceStatus.textContent = '尚未选择文件'
+    nodes.sourceStatus.textContent = `支持 ${typeConfig[type].fileLabel || '文章文档'} · 含子目录`
+    nodes.sourceDrop.classList.remove('is-dragging')
   }
 
   async function loadContent() {
@@ -1385,7 +1441,7 @@
   }
 
   async function changeTargetPool() {
-    if (state.loading || state.checkingDuplicates || state.targetLocked) return
+    if (state.loading || state.readingSource || state.checkingDuplicates || state.targetLocked) return
     const targetPoolId = String(nodes.targetPool?.value || '').trim()
     if (!targetPoolId || targetPoolId === state.targetPoolId) return
     state.targetPoolId = targetPoolId
@@ -1398,7 +1454,7 @@
     }
     try {
       await loadContent()
-      if (state.sourceText) {
+      if (state.textSources.length) {
         const selectionGeneration = beginSourceSelection()
         await parseTextSource(selectionGeneration)
       } else if (state.records.length && type === 'album') {
@@ -1412,7 +1468,7 @@
   }
 
   async function openImport(detail = {}) {
-    if (state.loading) {
+    if (state.loading || state.readingSource || window.isArticleDocumentUploading?.()) {
       showToast('正在导入，请等待当前批次完成')
       return
     }
@@ -1446,16 +1502,24 @@
     render()
   }
 
+  function selectFolder() {
+    if (state.locked || !state.content || type === 'article') return
+    nodes.folderFiles.value = ''
+    nodes.folderFiles.click()
+  }
+
   function bindEvents() {
     nodes.selectText.addEventListener('click', () => {
       if (state.loading) return
       nodes.textFile.value = ''
       nodes.textFile.click()
     })
-    nodes.selectFolder.addEventListener('click', () => {
-      if (state.loading) return
-      nodes.folderFiles.value = ''
-      nodes.folderFiles.click()
+    nodes.selectFolder.addEventListener('click', selectFolder)
+    nodes.sourceDrop.addEventListener('click', selectFolder)
+    nodes.sourceDrop.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      if (!event.repeat) selectFolder()
     })
     nodes.selectAudio.addEventListener('click', () => {
       if (state.loading) return
@@ -1463,22 +1527,32 @@
       nodes.audioFiles.click()
     })
     nodes.textFile.addEventListener('change', () => {
-      if (!state.loading) selectTextFile(nodes.textFile.files?.[0]).catch((error) => handleSourceError(error, 'TXT 读取失败'))
+      if (nodes.textFile.files?.length) void selectSource(() => window.FolderImportFiles.fromFiles(nodes.textFile.files, folderOptions()))
     })
     nodes.folderFiles.addEventListener('change', () => {
-      if (state.loading) return
-      const records = Array.from(nodes.folderFiles.files || []).map((file) => ({ file, name: file.name, path: file.webkitRelativePath || file.name }))
-      selectRecords(records, '已选择文件夹').catch((error) => handleSourceError(error, '文件夹读取失败'))
+      if (nodes.folderFiles.files?.length) void selectSource(() => window.FolderImportFiles.fromFiles(nodes.folderFiles.files, folderOptions()))
     })
     nodes.audioFiles.addEventListener('change', () => {
-      if (state.loading) return
-      const records = Array.from(nodes.audioFiles.files || []).map((file) => ({ file, name: file.name, path: file.name }))
-      selectRecords(records, `已选择 ${records.length} 个音频文件`).catch((error) => handleSourceError(error, '音频读取失败'))
+      if (nodes.audioFiles.files?.length) void selectSource(() => window.FolderImportFiles.fromFiles(nodes.audioFiles.files, folderOptions()))
+    })
+    nodes.sourceDrop.addEventListener('dragover', (event) => {
+      event.preventDefault()
+      if (state.locked || !state.content) { event.dataTransfer.dropEffect = 'none'; return }
+      event.dataTransfer.dropEffect = 'copy'
+      nodes.sourceDrop.classList.add('is-dragging')
+    })
+    nodes.sourceDrop.addEventListener('dragleave', (event) => {
+      if (!nodes.sourceDrop.contains(event.relatedTarget)) nodes.sourceDrop.classList.remove('is-dragging')
+    })
+    nodes.sourceDrop.addEventListener('drop', (event) => {
+      event.preventDefault()
+      nodes.sourceDrop.classList.remove('is-dragging')
+      void selectSource(() => window.FolderImportFiles.fromDrop(event.dataTransfer, folderOptions()))
     })
     nodes.splitMode.addEventListener('change', () => {
-      if (state.loading || state.checkingDuplicates) return
+      if (state.loading || state.readingSource || state.checkingDuplicates) return
       state.splitMode = nodes.splitMode.value
-      if (state.sourceText) {
+      if (state.textSources.length) {
         const selectionGeneration = beginSourceSelection()
         parseTextSource(selectionGeneration).catch((error) => handleSourceError(error, 'TXT 解析失败'))
       }

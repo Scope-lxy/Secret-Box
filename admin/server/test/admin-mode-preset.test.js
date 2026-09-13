@@ -4,7 +4,7 @@ const path = require('node:path')
 const test = require('node:test')
 
 const adminSource = path.resolve(__dirname, '../admin/src')
-const markup = fs.readFileSync(path.join(adminSource, 'index.html'), 'utf8')
+const markup = fs.readFileSync(path.join(adminSource, 'index.html'), 'utf8').replace(/\r\n/g, '\n')
 const main = fs.readFileSync(path.join(adminSource, 'main.js'), 'utf8')
 
 // 模式切换预设（applyModePreset）是后台一键填表行为，真正的保存走配置接口。

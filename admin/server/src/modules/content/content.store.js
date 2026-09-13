@@ -1,8 +1,15 @@
 const { getImagesByIds } = require('../images/image.store')
 const { getDatabase } = require('../../lib/state-database')
+const { safeArticleSource, articleFingerprint, articleDeduplicationKeys } = require('./article-identity')
 const contentImageLimits = {
   contentAlbum: 9,
 }
+const randomContentOrderCache = new Map()
+const RANDOM_CONTENT_ORDER_CACHE_TTL_MS = 10 * 60 * 1000
+const RANDOM_CONTENT_ORDER_CACHE_MAX = 256
+const randomArticleOrderCache = new Map()
+const RANDOM_ARTICLE_ORDER_CACHE_TTL_MS = 30 * 60 * 1000
+const RANDOM_ARTICLE_ORDER_CACHE_MAX = 64
 function clone(value) {
   return JSON.parse(JSON.stringify(value))
 }
@@ -117,6 +124,9 @@ function normalizeArticles(items, existing = []) {
         : null,
       sourceUrl: String(item.sourceUrl || '').trim(),
       sourceHash: String(item.sourceHash || '').trim().toLowerCase(),
+      sourceIdentity: safeArticleSource(item.sourceUrl).sourceIdentity,
+      importFingerprint: /^[a-f0-9]{64}$/.test(item.importFingerprint || '') ? item.importFingerprint : '',
+      contentFingerprint: articleFingerprint({ ...item, bodyMarkdown }),
       likeCount: normalizeCount(item.likeCount, 0),
       favoriteCount: normalizeCount(item.favoriteCount, 0),
     }
@@ -224,6 +234,63 @@ function getContentTypePage(poolId, type, { limit = 100, offset = 0, descending 
     resolved = resolvePoolImages({ dailyContents: [], articles: items, letters: [] }).articles
   }
   return { items: resolved, total }
+}
+
+// Public list randomization is seeded by the service layer so pages requested
+// by the unchanged mini-program client share one order without extra requests.
+function getRandomContentTypePage(poolId, type, { page = 1, pageSize = 20, seed = '' } = {}) {
+  const id = ensureContentPool(poolId)
+  const safePage = Math.max(1, Math.floor(Number(page) || 1))
+  const safePageSize = Math.max(1, Math.min(Math.floor(Number(pageSize) || 20), 20))
+  const safeSeed = String(seed || '').trim() || createRandomSeed()
+  const ids = getDatabase().prepare(`
+    SELECT item_id FROM content_items
+    WHERE pool_id = ? AND content_type = ?
+  `).all(id, type).map((row) => String(row.item_id))
+  const cacheKey = `${id}:${type}:${safeSeed}`
+  const signature = ids.join('\u0000')
+  const cached = randomContentOrderCache.get(cacheKey)
+  const now = Date.now()
+  const rankedIds = cached?.signature === signature && cached.expiresAt > now
+    ? cached.ids
+    : ids
+      .map((itemId) => ({ itemId, rank: stableRandomValue(safeSeed, itemId) }))
+      .sort((left, right) => left.rank - right.rank || left.itemId.localeCompare(right.itemId))
+      .map((entry) => entry.itemId)
+  if (!cached || cached.signature !== signature || cached.expiresAt <= now) {
+    if (randomContentOrderCache.size >= RANDOM_CONTENT_ORDER_CACHE_MAX) {
+      randomContentOrderCache.delete(randomContentOrderCache.keys().next().value)
+    }
+    randomContentOrderCache.set(cacheKey, {
+      ids: rankedIds,
+      signature,
+      expiresAt: now + RANDOM_CONTENT_ORDER_CACHE_TTL_MS,
+    })
+  }
+  const offset = (safePage - 1) * safePageSize
+  const pageIds = rankedIds.slice(offset, offset + safePageSize)
+  const placeholders = pageIds.map(() => '?').join(', ')
+  const itemRows = pageIds.length
+    ? getDatabase().prepare(`
+      SELECT item_id, item_json FROM content_items
+      WHERE pool_id = ? AND content_type = ? AND item_id IN (${placeholders})
+    `).all(id, type, ...pageIds)
+    : []
+  const itemById = new Map(itemRows.map((row) => [String(row.item_id), JSON.parse(row.item_json)]))
+  const items = normalizeItemsForType(type, pageIds.map((itemId) => itemById.get(itemId)).filter(Boolean))
+  let resolved = items
+  if (type === 'contentAlbums') {
+    resolved = resolvePoolImages({ dailyContents: items, articles: [], letters: [] }).dailyContents
+  } else if (type === 'articles') {
+    resolved = resolvePoolImages({ dailyContents: [], articles: items, letters: [] }).articles
+  }
+  return {
+    items: resolved,
+    total: rankedIds.length,
+    page: safePage,
+    pageSize: safePageSize,
+    seed: safeSeed,
+  }
 }
 
 function getContentItem(poolId, type, itemId) {
@@ -336,25 +403,47 @@ function stableRandomValue(seed, itemId) {
   return hash >>> 0
 }
 
+function getRandomArticleRankedIds(poolId, seed) {
+  const id = ensureContentPool(poolId)
+  const safeSeed = String(seed || '').trim() || createRandomSeed()
+  const ids = getDatabase().prepare(`
+    SELECT item_id FROM content_items
+    WHERE pool_id = ? AND content_type = 'articles'
+  `).all(id).map((row) => String(row.item_id))
+  const cacheKey = `${id}:${safeSeed}`
+  const signature = ids.join('\u0000')
+  const cached = randomArticleOrderCache.get(cacheKey)
+  const now = Date.now()
+  if (cached?.signature === signature && cached.expiresAt > now) return cached.ids
+  const rankedIds = ids
+    .map((itemId) => ({ itemId, rank: stableRandomValue(safeSeed, itemId) }))
+    .sort((left, right) => left.rank - right.rank || left.itemId.localeCompare(right.itemId))
+    .map((entry) => entry.itemId)
+  if (randomArticleOrderCache.size >= RANDOM_ARTICLE_ORDER_CACHE_MAX) {
+    randomArticleOrderCache.delete(randomArticleOrderCache.keys().next().value)
+  }
+  randomArticleOrderCache.set(cacheKey, {
+    ids: rankedIds,
+    signature,
+    expiresAt: now + RANDOM_ARTICLE_ORDER_CACHE_TTL_MS,
+  })
+  return rankedIds
+}
+
 function getRandomArticlePage(poolId, excludeId = '', { page = 1, pageSize = RANDOM_ARTICLE_PAGE_SIZE, seed = '' } = {}) {
   const id = ensureContentPool(poolId)
   const safePage = Math.max(1, Math.floor(Number(page) || 1))
   const safePageSize = Math.max(1, Math.min(Math.floor(Number(pageSize) || RANDOM_ARTICLE_PAGE_SIZE), RANDOM_ARTICLE_PAGE_SIZE))
   const safeSeed = String(seed || '').trim() || createRandomSeed()
   const excludedId = String(excludeId || '').trim()
-  const rows = getDatabase().prepare(`
-    SELECT item_id FROM content_items
-    WHERE pool_id = ? AND content_type = 'articles' AND item_id <> ?
-  `).all(id, excludedId)
-  const ranked = rows
-    .map((row) => ({ itemId: row.item_id, rank: stableRandomValue(safeSeed, row.item_id) }))
-    .sort((left, right) => left.rank - right.rank || left.itemId.localeCompare(right.itemId))
+  const ranked = getRandomArticleRankedIds(id, safeSeed)
+    .filter((itemId) => itemId !== excludedId)
     .slice(0, RANDOM_ARTICLE_MAX)
   const offset = (safePage - 1) * safePageSize
   return {
     items: ranked
       .slice(offset, offset + safePageSize)
-      .map((row) => getContentItem(id, 'articles', row.itemId))
+      .map((itemId) => getContentItem(id, 'articles', itemId))
       .filter(Boolean),
     total: ranked.length,
     page: safePage,
@@ -514,14 +603,17 @@ function getContentDeduplicationValue(type, item = {}) {
   return ''
 }
 
+function getContentDeduplicationKeys(type, item = {}) {
+  return type === 'articles' ? articleDeduplicationKeys(item) : [getContentDeduplicationValue(type, item)].filter(Boolean)
+}
+
 function getExistingContentDeduplicationValues(db, poolId, type) {
   const values = new Set()
   db.prepare(`
     SELECT item_json FROM content_items WHERE pool_id = ? AND content_type = ?
   `).all(poolId, type).forEach((row) => {
     const [existing] = normalizeItemsForType(type, [JSON.parse(row.item_json)])
-    const value = getContentDeduplicationValue(type, existing)
-    if (value) values.add(value)
+    getContentDeduplicationKeys(type, existing).forEach((value) => values.add(value))
   })
   return values
 }
@@ -533,10 +625,9 @@ function getDuplicateContentItemIndexes(poolId, type, items) {
   const duplicateIndexes = []
   ;(Array.isArray(items) ? items : []).forEach((item, index) => {
     const [normalized] = normalizeItemsForType(type, [item])
-    const value = getContentDeduplicationValue(type, normalized)
-    if (!value) return
-    if (existingValues.has(value) || seenValues.has(value)) duplicateIndexes.push(index)
-    else seenValues.add(value)
+    const keys = getContentDeduplicationKeys(type, normalized)
+    if (keys.some((value) => existingValues.has(value) || seenValues.has(value))) duplicateIndexes.push(index)
+    else keys.forEach((value) => seenValues.add(value))
   })
   return duplicateIndexes
 }
@@ -568,12 +659,17 @@ function updateContentAudios(items, poolId) {
 }
 
 function updateArticles(items, poolId) {
-  return replaceItems('articles', items, poolId)
+  if (!Array.isArray(items)) return replaceItems('articles', items, poolId)
+  const previous = new Map(getTypeItems(poolId, 'articles').map((item) => [item.id, item]))
+  return replaceItems('articles', items.map((item) => ({
+    ...item, importFingerprint: previous.get(item.id)?.importFingerprint || '',
+  })), poolId)
 }
 
 function updateContentItem(poolId, type, item) {
   const id = ensureContentPool(poolId)
-  const [normalized] = normalizeItemsForType(type, [item])
+  const previous = type === 'articles' ? getContentItem(id, type, item.id) : null
+  const [normalized] = normalizeItemsForType(type, [{ ...previous, ...item, ...(type === 'articles' ? { importFingerprint: previous?.importFingerprint || '' } : {}) }])
   if (!normalized) throw new Error('content item is invalid')
   const result = getDatabase().prepare(`
     UPDATE content_items SET item_json = ?
@@ -607,13 +703,12 @@ function appendContentItemsInternal(poolId, type, items, { deduplicate = false }
     let duplicateCount = 0
     const pending = normalized.filter((item) => {
       if (!deduplicate) return true
-      const value = getContentDeduplicationValue(type, item)
-      if (!value) return true
-      if (existingValues.has(value) || seenValues.has(value)) {
+      const keys = getContentDeduplicationKeys(type, item)
+      if (keys.some((value) => existingValues.has(value) || seenValues.has(value))) {
         duplicateCount += 1
         return false
       }
-      seenValues.add(value)
+      keys.forEach((value) => seenValues.add(value))
       return true
     })
     let position = db.prepare(`
@@ -714,6 +809,7 @@ module.exports = {
   getContentItemsByIds,
   getDuplicateContentItemIndexes,
   getContentTypePage,
+  getRandomContentTypePage,
   getRandomDailyContent,
   getRandomArticles,
   getRandomArticlePage,

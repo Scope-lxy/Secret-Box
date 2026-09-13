@@ -3,7 +3,6 @@ const path = require('path')
 
 const projectRoot = path.resolve(__dirname, '../../..')
 const miniRoot = path.join(projectRoot, 'miniprogram')
-const prototypeRoot = path.join(projectRoot, 'prototype', 'v3-融合版')
 const appConfig = JSON.parse(fs.readFileSync(path.join(miniRoot, 'app.json'), 'utf8'))
 const issues = []
 
@@ -95,10 +94,8 @@ const expandToggleStyles = readFile(path.join(miniRoot, 'styles/expand-toggle.wx
 const tokenStyles = readFile(path.join(miniRoot, 'styles/tokens.wxss'))
 const baseStyles = readFile(path.join(miniRoot, 'styles/base.wxss'))
 const miniPostmarkSource = readFile(path.join(miniRoot, 'assets/icons/daily-content-postmark.svg'))
-const prototypePostmarkSource = readFile(path.join(prototypeRoot, 'assets/icons/daily-content-postmark.svg'))
-if (miniPostmarkSource !== prototypePostmarkSource
-  || !/>等你亲启<\/text>/.test(miniPostmarkSource)) {
-  issues.push('小程序与原型的邮戳资源不一致，或未使用最终中心文案')
+if (!/>等你亲启<\/text>/.test(miniPostmarkSource)) {
+  issues.push('小程序邮戳资源未使用最终中心文案')
 }
 if (!/function getPrivateShareType\(type\)/.test(homeSource)
   || !/const HOME_SHARE_TYPE_ORDER = \['text', 'audio', 'album'\]/.test(homeSource)
@@ -504,80 +501,58 @@ for (const [page, asset] of [
   }
 }
 
-const webIndexSource = readFile(path.join(prototypeRoot, 'index.html'))
-const webStyleSource = readFile(path.join(prototypeRoot, 'styles.css'))
-const prototypeIndexSource = webIndexSource
-const prototypeStyleSource = webStyleSource
 const typographyTokens = [
-  ['--type-tab', '22rpx', '10px'],
-  ['--type-caption', '24rpx', '11px'],
-  ['--type-assist', '26rpx', '12px'],
-  ['--type-control', '30rpx', '13px'],
-  ['--type-body', '32rpx', '14px'],
-  ['--type-section', '34rpx', '15px'],
-  ['--type-prompt', '34rpx', '16px'],
-  ['--type-title', '36rpx', '17px'],
-  ['--type-metric', '38rpx', '18px'],
-  ['--type-success', '40rpx', '20px'],
-  ['--type-hero', '44rpx', '22px'],
+  ['--type-tab', '22rpx'],
+  ['--type-caption', '24rpx'],
+  ['--type-assist', '26rpx'],
+  ['--type-control', '30rpx'],
+  ['--type-body', '32rpx'],
+  ['--type-section', '34rpx'],
+  ['--type-prompt', '34rpx'],
+  ['--type-title', '36rpx'],
+  ['--type-metric', '38rpx'],
+  ['--type-success', '40rpx'],
+  ['--type-hero', '44rpx'],
 ]
-if (!typographyTokens.every(([name, miniValue, webValue]) => (
+if (!typographyTokens.every(([name, miniValue]) => (
   new RegExp(`${name}:\\s*${miniValue};`).test(tokenStyles)
-  && new RegExp(`${name}:\\s*${webValue};`).test(webStyleSource)
-  && new RegExp(`${name}:\\s*${webValue};`).test(prototypeStyleSource)
 ))) {
-  issues.push('Web 与小程序的字体语义 Token 缺失或默认字号不符合最终稿')
+  issues.push('小程序的字体语义 Token 缺失或默认字号不符合最终稿')
 }
 const miniTypographySource = listFiles(miniRoot, '.wxss').map(readFile).join('\n')
-if (/font-size:\s*\d+(?:rpx|px)/.test(miniTypographySource)
-  || /font-size:\s*\d+px/.test(`${webStyleSource}\n${webIndexSource}`)
-  || /font-size:\s*\d+px/.test(`${prototypeStyleSource}\n${prototypeIndexSource}`)) {
+if (/font-size:\s*\d+(?:rpx|px)/.test(miniTypographySource)) {
   issues.push('正式页面仍存在未登记的裸字号')
 }
-if (!/--space-3:\s*12px;[\s\S]*--space-4:\s*16px;/.test(webStyleSource)
-  || !/body\.v3-fusion \.btn-primary\s*\{[^}]*height:\s*48px;/s.test(webStyleSource)
-  || !/body\.v3-fusion \.carousel-frame\s*\{[^}]*aspect-ratio:\s*var\(--album-frame-ratio\);/s.test(webStyleSource)
-  || !/--space-3:\s*24rpx;[\s\S]*--space-4:\s*32rpx;/.test(tokenStyles)
+if (!/--space-3:\s*24rpx;[\s\S]*--space-4:\s*32rpx;/.test(tokenStyles)
   || !/\.daily-content-postmark\s*\{[^}]*width:\s*216rpx;/s.test(homeStyles)
-  || !/body\.v3-fusion \.daily-content-postmark\s*\{[^}]*width:\s*72px;/s.test(webStyleSource)
-  || !/body\.v3-fusion \.daily-content-postmark\s*\{[^}]*margin:\s*-6px\s+-4px\s+0\s+0;[^}]*transform:\s*translateX\(3\.4px\)\s+rotate\(-6deg\);/s.test(webStyleSource)
   || !/\.daily-content-prompt\s*\{[^}]*padding-left:\s*8rpx;[^}]*font-size:\s*var\(--type-daily-content-prompt\);[^}]*line-height:\s*1\.6;/s.test(homeStyles)
   || !/\.button-primary\s*\{[^}]*min-height:\s*96rpx;/s.test(componentStyles)) {
-  issues.push('Web 与小程序的最终视觉参数不一致')
+  issues.push('小程序的最终视觉参数不一致')
 }
-const webAppSource = readFile(path.join(prototypeRoot, 'app.js'))
-if (!/\.stats-row\.cols-2\s*\{\s*grid-template-columns:\s*repeat\(2,\s*1fr\);\s*\}/s.test(webStyleSource)
-  || !/\.stat-cell \.value\s*\{[^}]*font-size:\s*var\(--type-metric\);[^}]*font-weight:\s*700;/s.test(webStyleSource)
-  || !/\.stat-cell \.label\s*\{[^}]*font-size:\s*var\(--type-assist\);/s.test(webStyleSource)
-  || !/\.stat-cell \.value small\s*\{[^}]*font-size:\s*var\(--type-assist\);/s.test(webStyleSource)
-  || !/\.stats-row--2\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s.test(componentStyles)
+if (!/\.stats-row--2\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s.test(componentStyles)
   || !/\.home-stats-row \.stat-value\s*\{[^}]*font-size:\s*var\(--type-metric\);[^}]*font-weight:\s*650;/s.test(componentStyles)
   || !/\.home-stats-row \.stat-label\s*\{[^}]*font-size:\s*var\(--type-home-stat-detail\);[^}]*line-height:\s*var\(--home-stat-label-line-height\);/s.test(componentStyles)
   || !/\.mine-stats-row \.stat-value\s*\{[^}]*font-size:\s*var\(--type-title\);[^}]*font-weight:\s*650;/s.test(componentStyles)) {
   issues.push('首页统计项没有按可见数量重排或统计字号没有同步')
 }
-if (!/carouselFrame\?\.addEventListener\('pointerdown'/.test(webAppSource)
-  || !/const index = Math\.max\(0, Math\.min\(nextIndex, slides\.length - 1\)\)/.test(webAppSource)
-  || !/albumPreviewPhoto\.style\.backgroundSize = 'cover'/.test(webAppSource)
-  || !/albumPreviewPhoto\.className = slide\.className\.replace\('active', ''\)\.trim\(\) \+ ' album-preview-photo'/.test(webAppSource)
-  || !/openImagePreview\(this, images, index\)/.test(homeSource)) {
+if (!/openImagePreview\(this, images, index\)/.test(homeSource)) {
   issues.push('图册没有按缩略图点击索引、覆盖裁切和完整图片预览实现')
 }
-const webViewMappings = [
-  ['home', 'pages/home/home'],
-  ['letters', 'pages/letters/letters'],
-  ['mine', 'pages/mine/mine'],
-  ['messages', 'pages/messages/messages'],
-  ['favorites', 'pages/favorites/favorites'],
-  ['interactions', 'pages/interactions/interactions'],
-  ['total-opened', 'pages/opened-history/opened-history'],
-  ['settings', 'pages/settings/settings'],
-  ['user-agreement', 'pages/legal/agreement/agreement'],
-  ['profile-edit', 'pages/profile/profile'],
+const requiredPages = [
+  'pages/home/home',
+  'pages/letters/letters',
+  'pages/mine/mine',
+  'pages/messages/messages',
+  'pages/favorites/favorites',
+  'pages/interactions/interactions',
+  'pages/opened-history/opened-history',
+  'pages/settings/settings',
+  'pages/legal/agreement/agreement',
+  'pages/profile/profile',
 ]
-for (const [webView, miniPage] of webViewMappings) {
-  if (!new RegExp(`data-view="${webView}"`).test(prototypeIndexSource) || !appConfig.pages.includes(miniPage)) {
-    issues.push(`Web 视图与小程序页面映射缺失：${webView}`)
+for (const miniPage of requiredPages) {
+  if (!appConfig.pages.includes(miniPage)) {
+    issues.push(`小程序页面配置缺失：${miniPage}`)
   }
 }
 

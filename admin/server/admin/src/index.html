@@ -341,18 +341,43 @@
             </div>
 
             <div class="article-url-import-panel hidden" id="articleUrlImportPanel">
-              <div class="article-url-import-stack">
-                <section class="panel article-import-input-panel">
-                  <div class="panel-header import-preview-head">
-                    <div>
-                      <h3>批量导入文章</h3>
-                      <p class="panel-subtitle">每行粘贴一个公众号文章链接，系统统一为阅读模式并自动清理推广尾部，确认后导入。</p>
-                    </div>
-                    <button class="btn-primary" id="articleImportStartBtn" type="button">立即抓取</button>
+              <section class="panel article-import-input-panel">
+                <div class="panel-header import-source-head">
+                  <div>
+                    <h3 id="articleImportSourceTitle">选择导入文件夹</h3>
+                    <p class="panel-subtitle"><span id="articleImportSourceHint">每份一篇；每批最多 200 份，单份 1MB，合计 20MB。</span> <button class="import-template-link" id="articleDocumentTemplate" type="button">下载格式模板</button></p>
                   </div>
-                  <div class="form-field"><textarea id="articleImportUrls" rows="7" aria-label="文章链接" placeholder="每行粘贴一个 mp.weixin.qq.com 文章链接"></textarea></div>
-                </section>
-
+                  <div class="import-source-actions">
+                    <button class="btn-primary" id="articleDocumentSelectFolder" type="button">选择文件夹</button>
+                    <button class="btn-primary hidden" id="articleImportStartBtn" type="button">立即抓取</button>
+                  </div>
+                </div>
+                <div class="pool-select-row">
+                  <label class="inline-label" for="articleImportSource">导入方式：</label>
+                  <select class="pool-select-inline" id="articleImportSource">
+                    <option value="document" selected>文件导入</option>
+                    <option value="url">链接导入</option>
+                  </select>
+                </div>
+                <div class="import-source-fields hidden" id="articleUrlSourceFields">
+                  <textarea class="import-source-textarea" id="articleImportUrls" rows="7" aria-label="文章链接" placeholder="每行粘贴一个 mp.weixin.qq.com 文章链接"></textarea>
+                </div>
+                <div class="import-source-fields" id="articleDocumentSourceFields">
+                  <div class="import-folder-drop" id="articleDocumentDrop" role="button" tabindex="0" aria-label="选择文件夹" aria-describedby="articleDocumentDropHint">
+                    <p>点击或拖入文件夹</p>
+                    <p class="panel-subtitle" id="articleDocumentDropHint">支持 MD / Markdown / TXT · 含子目录</p>
+                  </div>
+                  <input class="hidden" id="articleDocumentFolder" type="file" multiple webkitdirectory directory>
+                  <input class="hidden" id="articleDocumentImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+                  <div class="article-document-actions hidden" id="articleDocumentResume">
+                    <select class="pool-select-inline" id="articleDocumentDrafts" aria-label="未完成的文档导入任务"></select><button class="btn-ghost" id="articleDocumentResumeButton" type="button">继续未完成导入</button>
+                    <span class="panel-subtitle">草稿保留 24 小时</span>
+                  </div>
+                  <p id="articleDocumentProgress" class="panel-subtitle" role="status" aria-live="polite"></p>
+                  <div class="article-document-actions article-document-recovery"><button class="btn-ghost hidden" id="articleDocumentContinue" type="button">继续准备</button><button class="btn-ghost hidden" id="articleDocumentRetryQuery" type="button">重试查询</button></div>
+                </div>
+              </section>
+              <div class="article-url-import-stack hidden" id="articleUrlSourcePanel">
                 <section class="panel article-import-results-panel">
                   <div class="panel-header import-preview-head">
                     <div>
@@ -368,22 +393,38 @@
                   <div class="article-import-list" id="articleImportList"></div>
                 </section>
               </div>
+              <div class="article-url-import-stack" id="articleDocumentPanel">
+                <section class="panel article-import-results-panel">
+                  <div class="panel-header import-preview-head">
+                    <div><h3>导入预览</h3><p class="panel-subtitle" id="articleDocumentSummary" aria-live="polite">选择文件夹开始</p></div>
+                    <button class="btn-primary hidden" id="articleDocumentPublish" type="button" disabled>确认导入</button>
+                  </div>
+                  <div class="article-document-filters">
+                    <select class="pool-select-inline" id="articleDocumentFilter" aria-label="筛选文档状态"><option value="">全部文档</option><option value="ready">可导入</option><option value="needs_attention">只看需处理</option><option value="duplicate">只看重复</option><option value="failed">只看失败</option></select>
+                    <input type="search" id="articleDocumentSearch" placeholder="搜索标题、账号或文件名" aria-label="搜索文档">
+                    <span class="panel-subtitle">确认范围为本批全部可导入文章，包含其他分页。</span>
+                  </div>
+                  <div class="article-document-actions hidden" id="articleDocumentAuthorRow"><input id="articleDocumentBatchAuthor" aria-label="批量补充账号" placeholder="为筛选结果中缺失账号的文章补充账号"><button class="btn-ghost" id="articleDocumentBatchAuthorApply" type="button">补充账号</button></div>
+                  <div class="article-import-list" id="articleDocumentList"></div>
+                  <div class="article-document-pagination" id="articleDocumentPagination" aria-label="文档预览分页"></div>
+                </section>
+              </div>
             </div>
 
             <div class="panel import-source-panel">
               <div class="panel-header import-source-head">
                 <div>
-                  <h3 id="importSourceTitle">选择导入文件</h3>
+                  <h3 id="importSourceTitle">选择导入文件夹</h3>
                   <p class="panel-subtitle" id="importSourceHint"></p>
                 </div>
                 <div class="import-source-actions" id="importSourceActions">
-                  <button class="btn-primary" id="importSelectTextBtn" type="button">选择文件</button>
-                  <button class="btn-primary hidden" id="importSelectAudioBtn" type="button">选择音频</button>
-                  <button class="btn-primary hidden" id="importSelectFolderBtn" type="button">选择文件夹</button>
+                  <button class="btn-ghost" id="importSelectTextBtn" type="button">选择文件</button>
+                  <button class="btn-ghost hidden" id="importSelectAudioBtn" type="button">选择音频</button>
+                  <button class="btn-primary" id="importSelectFolderBtn" type="button">选择文件夹</button>
                 </div>
               </div>
               <div class="pool-select-row hidden" id="importSplitControl">
-                <label class="inline-label" for="importSplitMode">文本分段判断方式：</label>
+                <label class="inline-label" for="importSplitMode">分段方式：</label>
                 <select class="pool-select-inline" id="importSplitMode">
                   <option value="auto">自动识别</option>
                   <option value="number">按序号</option>
@@ -391,8 +432,11 @@
                   <option value="separator">按分隔线</option>
                 </select>
               </div>
-              <div class="import-source-status" id="importSourceStatus">尚未选择文件</div>
-              <input class="hidden" id="importTextFile" type="file" accept=".txt,text/plain" />
+              <div class="import-folder-drop import-source-drop" id="importSourceDrop" role="button" tabindex="0" aria-label="选择文件夹" aria-describedby="importSourceStatus">
+                <p>点击或拖入文件夹</p>
+                <p class="panel-subtitle" id="importSourceStatus" role="status" aria-live="polite">支持 TXT 文件 · 含子目录</p>
+              </div>
+              <input class="hidden" id="importTextFile" type="file" accept=".txt,text/plain" multiple />
               <input class="hidden" id="importAudioFiles" type="file" accept="audio/mpeg,audio/mp4,audio/x-m4a,.mp3,.m4a" multiple />
               <input class="hidden" id="importFolderFiles" type="file" multiple webkitdirectory directory />
             </div>
@@ -1228,6 +1272,10 @@
               <div class="form-field"><input id="articleAuthorInput" maxlength="80" aria-label="文章作者" placeholder="请输入文章作者（可留空）"></div>
               <div class="form-field article-editor-publish-row"><input id="articlePublishAtInput" type="datetime-local" aria-label="发布时间" /></div>
             </div>
+            <div class="form-field hidden" id="articleDocumentEditorFields">
+              <input id="articleDocumentSourceInput" type="url" aria-label="原文链接（可选）" placeholder="原文链接（可选）">
+              <label class="hidden" id="articleDocumentMetadataRow"><input id="articleDocumentMetadataAck" type="checkbox"> 已核对并修复文档资料</label>
+            </div>
             <div class="form-field article-editor-preview-field">
               <div class="article-import-reading-card-viewport article-editor-preview-viewport">
                 <article class="article-reading-preview article-reading-layout article-reading-preview--stacked article-reading-layout--stacked article-reading-card-scroll" id="articleEditorPreviewCard">
@@ -1298,6 +1346,9 @@
       </div>
     </section>
     <script src="./main.js"></script>
+    <script src="./folder-import-files.js"></script>
+    <script src="./article-document-files.js"></script>
+    <script src="./article-document-import.js"></script>
     <script src="./article-manager.js"></script>
     <script src="./import.js"></script>
     <script src="./shell.js"></script>

@@ -35,6 +35,7 @@ const {
   retryArticleImportEntry,
 } = require('./modules/content/article-import.service')
 const { hasReadableArticleContent, renderArticleMarkdown } = require('./modules/content/article-markdown')
+const { registerDocumentRoutes } = require('./modules/content/article-document.routes')
 const { deleteContentPool: deleteContentPoolData, getContentImageAssetIds } = require('./modules/content/content.store')
 const { reclaimImageAssets } = require('./modules/images/image-reclamation.service')
 const { checkMessageBeforeSave } = require('./modules/messages/message-security.service')
@@ -694,6 +695,7 @@ function validateImageBatchClientIds(items, fallback) {
 
 function createAppRouter({ imageReadinessOptions = {}, articleImportDependencies = {} } = {}) {
   const router = createRouter()
+  registerDocumentRoutes(router, requireAdminSession, articleImportDependencies)
 
   router.get('/api/health', (req, res) => {
     getDatabase().prepare('SELECT 1 AS ok').get()

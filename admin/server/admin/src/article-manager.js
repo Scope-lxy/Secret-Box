@@ -454,6 +454,8 @@
       publishedAt: nodes.publishAt.value,
       author: nodes.author.value,
       title: nodes.title.value,
+      documentSource: state.editorMode === 'document' ? document.querySelector('#articleDocumentSourceInput')?.value : '',
+      documentMetadata: state.editorMode === 'document' ? document.querySelector('#articleDocumentMetadataAck')?.checked : false,
     })
   }
 
@@ -506,7 +508,19 @@
     nodes.author.value = article.author || ''
     nodes.body.value = article.bodyMarkdown || ''
     nodes.cover.value = article.coverImage?.id || ''
-    nodes.publishAt.value = toDateTimeLocal(article.publishedAt)
+    nodes.publishAt.value = mode === 'document'
+      ? (article.publishedAt ? new Date(new Date(article.publishedAt).getTime() + 8 * 3600000).toISOString().slice(0, 19) : '')
+      : toDateTimeLocal(article.publishedAt)
+    nodes.publishAt.step = mode === 'document' ? '1' : '60'
+    document.querySelector('#articleDocumentEditorFields')?.classList.toggle('hidden', mode !== 'document')
+    if (mode === 'document') {
+      nodes.editorTitle.textContent = '编辑导入文档'
+      nodes.editorStatus.textContent = '保存后更新本批文档，确认导入后才加入内容池；时间使用北京时间。'
+      nodes.author.placeholder = '账号 / 作者（必填）'
+      document.querySelector('#articleDocumentSourceInput').value = article.sourceUrl || ''
+      document.querySelector('#articleDocumentMetadataAck').checked = false
+      document.querySelector('#articleDocumentMetadataRow').classList.toggle('hidden', !(article.issues || []).some((issue) => issue.field === 'metadata'))
+    } else nodes.author.placeholder = '请输入文章作者（可留空）'
     updateCoverPreview()
     setCoverUploadStatus('')
     const editorPreview = renderReadingPreviewCard({
@@ -570,6 +584,15 @@
     const title = nodes.title.value.trim()
     const author = nodes.author.value.trim() || '轻读手记'
     const bodyMarkdown = nodes.body.value.trim()
+    if (state.editorMode === 'document') {
+      const coverId = nodes.cover.value.trim()
+      const date = nodes.publishAt.value ? new Date(nodes.publishAt.value + '+08:00') : null
+      return {
+        ...state.editingArticle, title, author: nodes.author.value.trim(), bodyMarkdown,
+        publishedAt: date && !Number.isNaN(date.getTime()) ? date.toISOString() : '',
+        coverImage: coverId ? selectedCoverImage() : null,
+      }
+    }
     if (!title) throw new Error('请输入文章标题')
     if (!bodyMarkdown) throw new Error('请输入文章正文')
     if (!nodes.publishAt.value) throw new Error('请输入发布时间')
@@ -603,6 +626,16 @@
     }
     const restore = setButtonsLoading([button], '保存中…')
     try {
+      if (state.editorMode === 'document') {
+        await documentImport.save(state.editingArticle, payload, {
+          sourceUrl: document.querySelector('#articleDocumentSourceInput').value.trim(),
+          acknowledgeMetadata: document.querySelector('#articleDocumentMetadataAck').checked,
+        })
+        await cleanupEditorUploads(payload.coverImage?.id || '', { commit: true })
+        await closeEditor()
+        showToast('文档草稿已保存')
+        return
+      }
       if (state.editorMode === 'import') {
         const article = state.importItems.find((item) => item.id === state.importEditingId && item.status === 'success')
         if (!article) throw new Error('当前导入文章不存在，请重新抓取')
@@ -1012,7 +1045,8 @@
     nodes.importPanel?.classList.remove('hidden')
     document.querySelector('#import')?.classList.add('article-url-import-active')
     window.showSection?.('import')
-    requestAnimationFrame(() => nodes.importUrls.focus())
+    selectArticleSource('document')
+    documentImport?.open(state.importContext)
   }
 
   function setArticleImportContext(event) {
@@ -1023,6 +1057,8 @@
   }
 
   function closeArticleImport() {
+    documentImport?.close()
+    if (state.editorMode === 'document') void closeEditor({ discard: true })
     if (state.editorMode === 'import') void closeEditor({ discard: true })
     void reclaimTransientCoverIds([...state.importTransientCoverIds])
     document.querySelector('#import')?.classList.remove('article-url-import-active')
@@ -1129,6 +1165,56 @@
     })
   }
 
+  let selectedArticleSource = 'document'
+  const documentImport = window.createArticleDocumentImport?.({
+    apiRequest: (...args) => apiRequest(...args), escapeHtml, renderReadingPreviewCard, coverImageUrl,
+    icons: importToolIcons, openEditor, openConfirm, showToast,
+    uploadImage: async (file) => {
+      const result = await uploadImageFileToCos(file, { label: file.name, usage: 'article' })
+      imageState = [result.item, ...(imageState || []).filter((item) => item.id !== result.item.id)]
+      return result.item
+    },
+    reclaim: reclaimTransientCoverIds,
+    showExisting: async (duplicate, context) => {
+      const result = await apiRequest('/api/admin/articles/documents/existing/' + encodeURIComponent(duplicate.id) + '?' + new URLSearchParams(context))
+      await showPreview(result.article)
+    },
+  })
+
+  function selectArticleSource(mode) {
+    selectedArticleSource = mode
+    document.querySelector('#articleImportSource').value = mode
+    document.querySelector('#articleUrlSourcePanel')?.classList.toggle('hidden', mode !== 'url')
+    document.querySelector('#articleDocumentPanel')?.classList.toggle('hidden', mode !== 'document')
+    document.querySelector('#articleUrlSourceFields')?.classList.toggle('hidden', mode !== 'url')
+    document.querySelector('#articleDocumentSourceFields')?.classList.toggle('hidden', mode !== 'document')
+    document.querySelector('#articleDocumentTemplate')?.classList.toggle('hidden', mode !== 'document')
+    document.querySelector('#articleDocumentSelectFolder')?.classList.toggle('hidden', mode !== 'document')
+    nodes.importStart?.classList.toggle('hidden', mode !== 'url')
+    document.querySelector('#articleImportSourceTitle').textContent = mode === 'document' ? '选择导入文件夹' : '批量导入文章'
+    document.querySelector('#articleImportSourceHint').textContent = mode === 'document'
+      ? '每份一篇；每批最多 200 份，单份 1MB，合计 20MB。'
+      : '每行一个公众号链接，自动清理推广后预览。'
+  }
+  document.querySelector('#articleImportSource')?.addEventListener('change', (event) => {
+    const mode = event.target.value
+    event.target.value = selectedArticleSource
+    if (mode === selectedArticleSource) return
+    if (mode === 'document') {
+      if (['queued', 'processing'].includes(state.importJobStatus)) { showToast('链接正在抓取，请完成后再切换'); return }
+      if (state.importJobId && state.importItems.length) {
+        openConfirm({ title: '放弃当前链接抓取预览？', message: '尚未确认导入的编辑将被清空，已导入的文章会保留。', confirmLabel: '切换到文件导入', danger: true,
+          onConfirm: () => { resetImportWorkspace(); renderImportItems(); selectArticleSource('document') },
+        })
+        return
+      }
+    } else {
+      if (documentImport?.isProcessing()) { showToast('文档正在准备，请完成后再切换'); return }
+      if (documentImport?.hasJob()) { documentImport.abandonThen(() => { selectArticleSource('url'); nodes.importUrls.focus() }); return }
+    }
+    selectArticleSource(mode)
+    if (mode === 'url') nodes.importUrls.focus()
+  })
   bindEvents()
   window.AdminPagination?.register('articles', async ({ page, pageSize }) => {
     state.page = Number(page || 1)
@@ -1139,6 +1225,7 @@
   window.addEventListener('open-article-import', setArticleImportContext)
   window.addEventListener('open-article-import', openArticleImport)
   window.addEventListener('content-import-target-change', (event) => {
+    documentImport?.updateContext({ miniProgramId: String(event.detail?.miniProgramId || '').trim(), poolId: String(event.detail?.poolId || '').trim() })
     if (state.importJobId) return
     state.importContext = {
       miniProgramId: String(event.detail?.miniProgramId || '').trim(),

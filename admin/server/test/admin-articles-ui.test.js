@@ -120,7 +120,7 @@ test('article ad editor keeps all six placements when older responses omit new k
   assert.match(main, /articlesEndNative: \{[^\n]*label: '文章详情正文广告'/)
   assert.match(main, /function mergeArticleAdEditorItems\(items = \{\}\)/)
   assert.match(main, /const editorItems = mergeArticleAdEditorItems\(items\)/)
-  assert.match(main, /const editorSource = group === 'ads' \? mergeArticleAdEditorItems\(source\)/)
+  assert.match(main, /const editorSource = group === 'ads' && mergeArticleDefaults \? mergeArticleAdEditorItems\(source\)/)
   assert.match(main, /const listNativeAdKeys = new Set\(\['lettersNative', 'articlesNative', 'mineNative'\]\)/)
   assert.match(main, /const isListNative = \['lettersNative', 'articlesNative', 'mineNative'\]\.includes\(key\)/)
 })

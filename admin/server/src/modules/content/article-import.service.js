@@ -1063,23 +1063,31 @@ function getImportedArticleImageAssetIds() {
 async function purgeExpiredImportJobs(now = Date.now(), dependencies = {}) {
   const cutoff = new Date(now - importJobRetentionMs).toISOString()
   const db = getDatabase()
-  const expiredIds = db.prepare('SELECT job_id FROM article_import_jobs WHERE updated_at < ?')
+  const expiredJobs = db.prepare('SELECT job_id, item_json FROM article_import_jobs WHERE updated_at < ?')
     .all(cutoff)
-    .map((row) => row.job_id)
-    .filter((jobId) => !activeJobIds.has(jobId))
+    .filter((row) => !activeJobIds.has(row.job_id))
+  const expiredIds = expiredJobs.map((row) => row.job_id)
+  // A document can also reference locally uploaded replacements, whose
+  // processing mode differs from the remote article-image importer.
+  const expiredAssetIds = expiredJobs.flatMap((row) => {
+    try {
+      return (JSON.parse(row.item_json).items || []).flatMap((item) => [item.coverImage?.id, ...(item.bodyImageAssetIds || [])]).filter(Boolean)
+    } catch { return [] }
+  })
   let changes = 0
   if (expiredIds.length) {
     const placeholders = expiredIds.map(() => '?').join(', ')
     changes = db.prepare(`DELETE FROM article_import_jobs WHERE job_id IN (${placeholders})`).run(...expiredIds).changes
   }
   const options = dependencies.deleteObject ? { deleteObject: dependencies.deleteObject } : {}
-  await reclaimImageAssets(getImportedArticleImageAssetIds(), options)
+  await reclaimImageAssets([...expiredAssetIds, ...getImportedArticleImageAssetIds()], options)
   return changes
 }
 
 function getArticleImportJob(jobId) {
   void purgeExpiredImportJobs().catch(() => {})
   const job = readJob(jobId)
+  if (job?.sourceType === 'document') return null
   if (!job || job.status !== 'processing' || activeJobIds.has(job.id)) return withDerivedImportPreviews(job)
   job.status = 'failed'
   job.updatedAt = new Date().toISOString()
@@ -1448,6 +1456,7 @@ function retryArticleImportEntry(jobId, sourceUrl, dependencies = {}) {
   const url = String(sourceUrl || '').trim()
   const job = readJob(id)
   if (!job) throw new ArticleImportError('JOB_NOT_FOUND', '导入任务不存在或已失效')
+  if (job.sourceType === 'document') throw new ArticleImportError('INVALID_SOURCE_TYPE', '请从文档入口继续此任务')
   if (activeJobIds.has(id) || ['queued', 'processing'].includes(job.status)) {
     throw new ArticleImportError('JOB_BUSY', '当前导入任务仍在处理中，请稍后再试')
   }
@@ -1474,6 +1483,7 @@ function retryArticleImportEntry(jobId, sourceUrl, dependencies = {}) {
 async function publishArticleImportJob(jobId, selectedIds = [], restoreTailIds = [], dependencies = {}, editedItems) {
   const job = readJob(jobId)
   if (!job) throw new ArticleImportError('JOB_NOT_FOUND', '导入任务不存在或已失效')
+  if (job.sourceType === 'document') throw new ArticleImportError('INVALID_SOURCE_TYPE', '请从文档入口确认导入')
   if (job.status !== 'ready') throw new ArticleImportError('JOB_NOT_READY', '导入任务当前不可发布')
   updateDuplicateFlags(job)
   job.updatedAt = new Date().toISOString()
@@ -1585,6 +1595,11 @@ function startArticleImportJobCleanup() {
 startArticleImportJobCleanup()
 
 module.exports = {
+  activeJobIds,
+  readJob,
+  saveJob,
+  prepareImage,
+  registerImportedArticleImage,
   ArticleImportError,
   createArticleImportJob,
   fetchSafeResource,

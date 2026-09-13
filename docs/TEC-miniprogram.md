@@ -30,7 +30,7 @@
 
 ## 内容列表刷新与排序
 
-文章和心笺列表分别读取 `system.articlesSortMode`、`system.lettersSortMode`，支持 `random` 随机打乱和 `sequence` 按入库顺序倒序展示，默认均为 `random`。列表首次进入时确定当前顺序（无可用缓存时请求并排序）；真正经历 `App.onHide` 后再次回到前台、用户主动下拉刷新时重新取数并重新排序；从详情或其他页面返回、Tab 切换、分享返回、点赞、收藏、留言不会改变现有顺序，触底分页只追加数据。
+文章和心笺列表分别读取 `system.articlesSortMode`、`system.lettersSortMode`，支持 `random` 和 `sequence`，默认均为 `random`。`random` 顺序由 Admin 服务端按用户生成，第 1 页请求（包括主动下拉刷新）换一套顺序，第 2 页及后续页面沿用该顺序；`sequence` 仍按入库顺序倒序。客户端不负责按点赞、收藏等数据排序，从详情或其他页面返回、Tab 切换、分享返回、点赞、收藏、留言不会主动改变当前顺序，触底分页只追加数据。服务端缓存和单进程边界见[内容列表随机与推荐顺序说明](TEC-content-randomization.md)。
 
 列表刷新与 `App.onShow` 的 `dataScopeId` 检查是两件事。分享可能触发微信生命周期，但分享回流会被识别，不触发列表刷新。用户主动下拉刷新仍会强制拉取启动配置和业务数据。
 

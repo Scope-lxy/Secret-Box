@@ -14,8 +14,10 @@ deploy/   构建文件与环境变量示例（生产操作手册仅本地保留�
 - [后台 PRD](PRD-轻读手记后台.md)
 - [后台设计规范](TEC-admin-workbench-design-spec.md)
 - [服务端说明](TEC-server.md)
+- [文章文档批量导入规范](PRD-文章文档批量导入.md)
+- [内容列表随机与推荐顺序说明](TEC-content-randomization.md)
 
-内容池的新增、批量导入和素材上传规则见 [内容导入说明](TEC-content-import.md)。
+内容池的新增、批量导入和素材上传实现见 [内容导入说明](TEC-content-import.md)。文章支持标准 MD 文件夹导入与公众号链接抓取两种方式；文件格式、去重和图片处理的产品规则以[文章文档批量导入规范](PRD-文章文档批量导入.md)为准。
 
 ## 本地入口
 

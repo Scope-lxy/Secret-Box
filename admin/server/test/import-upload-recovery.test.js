@@ -3,10 +3,10 @@ const fs = require('node:fs')
 const path = require('node:path')
 const test = require('node:test')
 
-const importer = fs.readFileSync(path.resolve(__dirname, '../admin/src/import.js'), 'utf8')
-  const importGuide = fs.readFileSync(path.resolve(__dirname, '../../../docs/content-import.md'), 'utf8')
-const main = fs.readFileSync(path.resolve(__dirname, '../admin/src/main.js'), 'utf8')
-const page = fs.readFileSync(path.resolve(__dirname, '../admin/src/index.html'), 'utf8')
+const importer = fs.readFileSync(path.resolve(__dirname, '../admin/src/import.js'), 'utf8').replace(/\r\n/g, '\n')
+const importGuide = fs.readFileSync(path.resolve(__dirname, '../../../docs/TEC-content-import.md'), 'utf8')
+const main = fs.readFileSync(path.resolve(__dirname, '../admin/src/main.js'), 'utf8').replace(/\r\n/g, '\n')
+const page = fs.readFileSync(path.resolve(__dirname, '../admin/src/index.html'), 'utf8').replace(/\r\n/g, '\n')
 
 function loadRetryHelpers() {
   const source = importer.match(/  function wait\(delay\) \{[\s\S]*?  function showToast\(message\) \{/)
@@ -312,7 +312,7 @@ test('all four batch imports replace stale selections and use recoverable final 
   })
   assert.match(importer, /const selectionGeneration = beginSourceSelection\(\)/g)
   assert.match(importer, /if \(!isCurrentSourceSelection\(selectionGeneration\)\) return/g)
-  assert.match(importer, /state\.items = \[\][\s\S]*?nodes\.sourceStatus\.textContent = `\$\{file\.name\} · 正在解析`/)
+  assert.match(importer, /async function selectSource\(readSelection\)[\s\S]*?state\.items = \[\][\s\S]*?nodes\.sourceStatus\.textContent = '正在读取文件并检查子目录…'/)
   assert.match(importer, /runWithRetry\(\(\) => apiRequest\('\/api\/admin\/images\/upload\/prepare-batch'/)
   assert.match(importer, /runWithRetry\(\(\) => apiRequest\('\/api\/admin\/content\/items'/)
   assert.match(importer, /delays: \[800, 2000\]/)

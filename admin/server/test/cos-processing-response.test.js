@@ -3,7 +3,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const test = require('node:test')
 
-const main = fs.readFileSync(path.resolve(__dirname, '../admin/src/main.js'), 'utf8')
+const main = fs.readFileSync(path.resolve(__dirname, '../admin/src/main.js'), 'utf8').replace(/\r\n/g, '\n')
 
 class FakeNode {
   constructor(name, values = {}) {

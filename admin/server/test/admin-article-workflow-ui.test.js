@@ -138,7 +138,7 @@ test('公众号文章批量导入复用导入内容页，按钮使用统一文�
   assert.doesNotMatch(markup, /class="article-import-summary"/)
   assert.doesNotMatch(styles, /\.article-import-summary\s*\{/)
   assert.doesNotMatch(markup, /<label for="articleImportUrls">文章链接<\/label>/)
-  assert.match(importScript, /sourceHint: '可识别不同子目录内的图片，或用相同名称加序号作为分组标识，例如 春日01\.jpg、春日02\.jpg。每组 1-9 张。'/)
+  assert.match(importScript, /sourceHint: '按子目录或“名称 \+ 序号”分组，每组 1-9 张。'/)
   assert.match(styles, /#import\.article-url-import-active \.import-source-panel,[\s\S]*#import\.article-url-import-active \.import-preview-panel/)
   assert.doesNotMatch(styles, /#import\.article-url-import-active \.import-(?:type-tabs|section-head)/)
   assert.match(styles, /\.article-import-list > \.import-empty\s*\{\s*grid-column:\s*1 \/ -1;/)

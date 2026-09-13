@@ -9,6 +9,7 @@ const {
   getDuplicateContentItemIndexes,
   getContentPoolSummaries,
   getContentTypePage,
+  getRandomContentTypePage,
   getRandomDailyContent,
   getRandomArticlePage,
   updateContentItem,
@@ -52,6 +53,13 @@ const defaultHomeStats = [
   { key: 'checkInDays', label: '已连续打卡', value: '0天' },
   { key: 'companionValue', label: '累计阅读值', value: '1.2k' },
 ]
+
+const publicListOrderSessions = new Map()
+const PUBLIC_LIST_ORDER_TTL_MS = 2 * 60 * 60 * 1000
+const PUBLIC_LIST_ORDER_MAX = 2048
+const articleRecommendationSeedCache = new Map()
+const ARTICLE_RECOMMENDATION_CACHE_TTL_MS = 30 * 60 * 1000
+const ARTICLE_RECOMMENDATION_CACHE_MAX = 64
 
 const companionValueRewards = Object.freeze({
   checkin: 5,
@@ -221,11 +229,38 @@ function getSystemSettings() {
   return getMiniProgramRuntimeConfig({ miniProgramId: getInternalAdminSettings().currentMiniProgramId }).system || {}
 }
 
-function shuffleItems(items = []) {
-  return [...items]
-    .map((item) => ({ item, order: Math.random() }))
-    .sort((a, b) => a.order - b.order)
-    .map(({ item }) => item)
+function createRandomSeed(prefix = 'random') {
+  return `${prefix}:${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
+function getPublicListRandomSeed(context = {}, poolId = '', type = '', page = 1) {
+  // The mini-program does not send a seed on page 2. Keep it server-side per
+  // visitor so page 1 can refresh to a new order while later pages stay aligned.
+  const visitorId = String(context.visitorId || context.accountId || 'anonymous').trim() || 'anonymous'
+  const key = `${context.miniProgramId || ''}:${poolId}:${type}:${visitorId}`
+  const now = Date.now()
+  const cached = publicListOrderSessions.get(key)
+  if (Number(page) > 1 && cached && cached.expiresAt > now) return cached.seed
+  if (Number(page) > 1 && cached && cached.expiresAt <= now) publicListOrderSessions.delete(key)
+  if (publicListOrderSessions.size >= PUBLIC_LIST_ORDER_MAX) {
+    publicListOrderSessions.delete(publicListOrderSessions.keys().next().value)
+  }
+  const seed = createRandomSeed(`public-list:${poolId}:${type}`)
+  publicListOrderSessions.set(key, { seed, expiresAt: now + PUBLIC_LIST_ORDER_TTL_MS })
+  return seed
+}
+
+function getArticleRecommendationSeed(poolId = '') {
+  const key = String(poolId || '').trim()
+  const now = Date.now()
+  const cached = articleRecommendationSeedCache.get(key)
+  if (cached && cached.expiresAt > now) return cached.seed
+  if (articleRecommendationSeedCache.size >= ARTICLE_RECOMMENDATION_CACHE_MAX) {
+    articleRecommendationSeedCache.delete(articleRecommendationSeedCache.keys().next().value)
+  }
+  const seed = createRandomSeed(`article-recommendations:${key}`)
+  articleRecommendationSeedCache.set(key, { seed, expiresAt: now + ARTICLE_RECOMMENDATION_CACHE_TTL_MS })
+  return seed
 }
 
 function getCurrentAdminContentPoolId() {
@@ -384,17 +419,25 @@ function getLetters(context = {}, { page = 1, pageSize = 20, includeId = '' } = 
   const safePageSize = Math.max(1, Math.min(Number(pageSize) || 20, 20))
   const system = getMiniProgramRuntimeConfig(context).system || {}
   const orderedByNewest = system.lettersSortMode === 'sequence'
-  const { items: letters, total } = getContentTypePage(getContentPoolIdForContext(context), 'letters', {
-    limit: safePageSize,
-    offset: (safePage - 1) * safePageSize,
-    descending: orderedByNewest,
-  })
+  const poolId = getContentPoolIdForContext(context)
+  const pageData = orderedByNewest
+    ? getContentTypePage(poolId, 'letters', {
+      limit: safePageSize,
+      offset: (safePage - 1) * safePageSize,
+      descending: true,
+    })
+    : getRandomContentTypePage(poolId, 'letters', {
+      page: safePage,
+      pageSize: safePageSize,
+      seed: getPublicListRandomSeed(context, poolId, 'letters', safePage),
+    })
+  const { items: letters, total } = pageData
   const included = includeId && !letters.some((item) => item.id === includeId)
-    ? getContentItem(getContentPoolIdForContext(context), 'letters', includeId)
+    ? getContentItem(poolId, 'letters', includeId)
     : null
   const items = [
     ...(included ? [included] : []),
-    ...(orderedByNewest ? letters : shuffleItems(letters)),
+    ...letters,
   ]
   return pageResult(
     enrichMiniProgramContentItems(items, context, 'letters'),
@@ -426,10 +469,11 @@ function getArticleRecommendations(context = {}, contentId = '', options = {}) {
   const poolId = getContentPoolIdForContext(context)
   const item = getContentItem(poolId, 'articles', contentId)
   if (!item) return null
+  const requestedSeed = String(options.seed || '').trim()
   const page = getRandomArticlePage(poolId, item.id, {
     page: options.page,
     pageSize: Math.min(Number(options.pageSize) || RANDOM_ARTICLE_PAGE_SIZE, RANDOM_ARTICLE_PAGE_SIZE),
-    seed: options.seed,
+    seed: requestedSeed || getArticleRecommendationSeed(poolId),
   })
   const recommendationItems = enrichMiniProgramContentItems(page.items, context, 'article')
   return {
@@ -452,18 +496,26 @@ function getArticles(context = {}, { page = 1, pageSize = 20, includeId = '' } =
   const safePageSize = Math.max(1, Math.min(Number(pageSize) || 20, 20))
   const system = getMiniProgramRuntimeConfig(context).system || {}
   const orderedByNewest = system.articlesSortMode === 'sequence'
-  const { items: articles, total } = getContentTypePage(getContentPoolIdForContext(context), 'articles', {
-    limit: safePageSize,
-    offset: (safePage - 1) * safePageSize,
-    descending: orderedByNewest,
-  })
+  const poolId = getContentPoolIdForContext(context)
+  const pageData = orderedByNewest
+    ? getContentTypePage(poolId, 'articles', {
+      limit: safePageSize,
+      offset: (safePage - 1) * safePageSize,
+      descending: true,
+    })
+    : getRandomContentTypePage(poolId, 'articles', {
+      page: safePage,
+      pageSize: safePageSize,
+      seed: getPublicListRandomSeed(context, poolId, 'articles', safePage),
+    })
+  const { items: articles, total } = pageData
   const unlockedIds = new Set(getUnlockedArticleIds(context))
   const included = includeId && !articles.some((item) => item.id === includeId)
-    ? getContentItem(getContentPoolIdForContext(context), 'articles', includeId)
+    ? getContentItem(poolId, 'articles', includeId)
     : null
   const pageArticles = [
     ...(included ? [included] : []),
-    ...(orderedByNewest ? articles : shuffleItems(articles)),
+    ...articles,
   ]
   const enrichedArticles = enrichMiniProgramContentItems(
     pageArticles,

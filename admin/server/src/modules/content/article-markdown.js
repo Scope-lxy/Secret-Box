@@ -12,6 +12,7 @@ const markdown = new MarkdownIt({
 const allowedTags = [
   'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote',
   'strong', 'em', 's', 'del', 'ul', 'ol', 'li', 'a', 'img', 'hr', 'pre', 'code',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td',
 ]
 
 const MIDDLE_AD_MIN_TEXT_LENGTH = 800
@@ -20,8 +21,6 @@ const MIDDLE_AD_MIN_SIDE_TEXT_LENGTH = 320
 function normalizeArticleMarkdown(value) {
   return String(value || '')
     .replace(/\r\n?/g, '\n')
-    .replace(/[ \t]+$/gm, '')
-    .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
 
@@ -32,6 +31,9 @@ function sanitizeRenderedArticleHtml(value) {
       a: ['href', 'title', 'rel'],
       img: ['src', 'alt', 'title', 'style'],
       code: ['class'],
+      table: ['style'],
+      th: ['style'],
+      td: ['style'],
     },
     allowedClasses: {
       code: [/^language-[a-z0-9_-]+$/i],
@@ -41,6 +43,9 @@ function sanitizeRenderedArticleHtml(value) {
     disallowedTagsMode: 'discard',
     enforceHtmlBoundary: true,
     transformTags: {
+      table: () => ({ tagName: 'table', attribs: { style: 'width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;' } }),
+      th: () => ({ tagName: 'th', attribs: { style: 'border:1px solid #ddd;padding:6px;overflow-wrap:anywhere;word-break:break-word;text-align:left;' } }),
+      td: () => ({ tagName: 'td', attribs: { style: 'border:1px solid #ddd;padding:6px;overflow-wrap:anywhere;word-break:break-word;' } }),
       a: (tagName, attribs) => ({
         tagName,
         attribs: {

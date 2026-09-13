@@ -69,7 +69,7 @@ test('article list returns summaries and per-article daily unlock state', () => 
   assert.deepEqual(result.todayUnlockedArticleIds, [])
 })
 
-test('article list follows the configured insertion-order mode before pagination', () => {
+test('article list keeps sequence order and uses one stable random order across pages', () => {
   try {
     updateMiniProgramConfig('mp-articles', { system: { articlesSortMode: 'sequence' } })
     const sequence = getArticles(context, { page: 1, pageSize: 3 })
@@ -77,10 +77,23 @@ test('article list follows the configured insertion-order mode before pagination
 
     updateMiniProgramConfig('mp-articles', { system: { articlesSortMode: 'random' } })
     const randomPage = getArticles(context, { page: 1, pageSize: 3 })
-    assert.deepEqual([...randomPage.items.map((item) => item.id)].sort(), ['article-01', 'article-02', 'article-03'])
+    const randomSecondPage = getArticles(context, { page: 2, pageSize: 3 })
+    const randomPageRefresh = getArticles(context, { page: 1, pageSize: 3 })
+    assert.notDeepEqual(randomPage.items.map((item) => item.id), randomPageRefresh.items.map((item) => item.id))
+    assert.equal(new Set([
+      ...randomPage.items.map((item) => item.id),
+      ...randomSecondPage.items.map((item) => item.id),
+    ]).size, 6)
   } finally {
     updateMiniProgramConfig('mp-articles', { system: { articlesSortMode: 'random' } })
   }
+})
+
+test('article detail recommendations reuse one server seed within the cache window', () => {
+  const first = getArticleRecommendations(context, 'article-01', { page: 1, pageSize: 3 })
+  const second = getArticleRecommendations(context, 'article-02', { page: 1, pageSize: 3 })
+  assert.ok(first.recommendationPagination.seed)
+  assert.equal(second.recommendationPagination.seed, first.recommendationPagination.seed)
 })
 
 test('article list includes a requested shared article once even when it is outside the page', () => {

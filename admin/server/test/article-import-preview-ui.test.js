@@ -9,8 +9,8 @@ const script = fs.readFileSync(path.join(source, 'article-manager.js'), 'utf8')
 const mainScript = fs.readFileSync(path.join(source, 'main.js'), 'utf8')
 const styles = fs.readFileSync(path.join(source, 'styles.css'), 'utf8')
 
-test('article import results use three responsive phone-proportioned cards with vertical-only scrolling', () => {
-  assert.match(styles, /\.article-import-list\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)[\s\S]*width:\s*100%;[\s\S]*min-width:\s*0/)
+test('article import results keep fixed-size phone cards and add columns on wider screens', () => {
+  assert.match(styles, /\.article-import-list\s*\{[\s\S]*grid-template-columns:\s*repeat\(auto-fill,\s*var\(--article-import-card-width\)\)[\s\S]*width:\s*100%;[\s\S]*min-width:\s*0/)
   assert.match(styles, /\.article-import-entry\s*\{[\s\S]*width:\s*100%;[\s\S]*min-width:\s*0;[\s\S]*height:\s*auto/)
   assert.doesNotMatch(styles, /\.article-import-entry\s*\{[^}]*?(?:border|background|padding):/)
   assert.match(styles, /\.article-import-reading-card-viewport\s*\{[\s\S]*aspect-ratio:\s*375\s*\/\s*667;[\s\S]*container-type:\s*inline-size/)
@@ -50,7 +50,7 @@ test('article reading previews use a compact title-cover header with inline auth
 })
 
 test('article import cards keep successful items by default and expose direct edit and removal tools', () => {
-  assert.doesNotMatch(script, /data-import-article=|选择导入|data-import-confirm=|采用当前版本|待确认|_confirmed/)
+  assert.doesNotMatch(script, /data-import-article=|data-import-confirm=|采用当前版本|待确认|_confirmed/)
   assert.doesNotMatch(script, /article-import-card-head|article-import-card-source|importStatusLabel/)
   assert.match(script, /<article class="article-import-entry article-import-entry--\$\{escapeHtml\(item\.status\)\}">\s*<div class="article-import-reading-card-viewport">/)
   assert.match(script, /data-import-edit=/)
@@ -122,7 +122,7 @@ test('article import editing reuses the full two-column article modal with live 
   assert.doesNotMatch(styles, /article-preview-layout-toggle|\.btn-segment/)
   assert.match(styles, /\.article-import-markdown-editor\s*\{[\s\S]*height:\s*100%;[\s\S]*min-height:\s*0/)
   assert.doesNotMatch(styles, /\.article-import-markdown-editor\s*\{[^}]*font-family:/)
-  assert.match(mainScript, /function resizeTextarea\(textarea\) \{\s*if \(textarea\.classList\.contains\('article-import-markdown-editor'\)\) \{\s*textarea\.style\.removeProperty\('height'\)\s*return/)
+  assert.match(mainScript, /function resizeTextarea\(textarea\) \{\s*if \(textarea\.matches\('\.article-import-markdown-editor, \.import-source-textarea'\)\) \{\s*textarea\.style\.removeProperty\('height'\)\s*return/)
   assert.match(script, /window\.setTimeout\(render, 300\)/)
   assert.match(script, /generation !== state\.editorPreviewGeneration/)
 })

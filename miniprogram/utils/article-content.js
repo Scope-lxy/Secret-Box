@@ -2,6 +2,7 @@ const ALLOWED_TAGS = new Set([
   'a', 'b', 'blockquote', 'br', 'em', 'h1', 'h2', 'h3', 'h4',
   'h5', 'h6', 'hr', 'i', 'img', 'li', 'ol', 'p', 'pre', 'code',
   's', 'del', 'section', 'span', 'strong', 'u', 'ul',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td',
 ])
 const BLOCKED_CONTENT = /<(script|style|iframe|object|embed|form|template|svg|math)[^>]*>[\s\S]*?<\/\1\s*>/gi
 const HTML_TAG = /<\/?([a-zA-Z0-9-]+)([^>]*)>/g
@@ -155,6 +156,8 @@ function sanitizeArticleHtml(value) {
     if (tag === 'img') return sanitizeImageAttributes(full)
     if (tag === 'a') return sanitizeLinkAttributes(full)
     if (tag === 'br') return '<br>'
+    if (tag === 'table') return '<table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;">'
+    if (tag === 'th' || tag === 'td') return '<' + tag + ' style="border:1px solid #ddd;padding:6px;overflow-wrap:anywhere;word-break:break-word;text-align:left;">'
     return `<${tag}>`
   })
   return addTextParagraphSpacing(addImageSpacing(sanitized))

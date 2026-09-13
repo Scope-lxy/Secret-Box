@@ -4911,7 +4911,7 @@ function textareaHeightBounds(textarea) {
 }
 
 function resizeTextarea(textarea) {
-  if (textarea.classList.contains('article-import-markdown-editor')) {
+  if (textarea.matches('.article-import-markdown-editor, .import-source-textarea')) {
     textarea.style.removeProperty('height')
     return
   }
