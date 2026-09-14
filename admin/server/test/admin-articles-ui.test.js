@@ -31,12 +31,12 @@ test('admin article manager exposes the required article fields and reading prev
   assert.doesNotMatch(`${markup}\n${script}`, /保存草稿|articleStatusFilter|articleSearchInput|method: 'PUT'/)
 })
 
-test('文章编辑器允许空作者并使用统一兜底，导入发布仍校验作者', () => {
+test('文章编辑器和两种导入模式共享默认作者处理', () => {
   assert.match(markup, /id="articleAuthorInput"[^>]*aria-label="文章作者"[^>]*placeholder="请输入文章作者（可留空）"/)
   assert.match(script, /const author = nodes\.author\.value\.trim\(\) \|\| '轻读手记'/)
-  assert.match(script, /缺少作者 \$\{missingAuthor\} 篇，请编辑补充/)
-  assert.match(script, /未识别到作者，请编辑补充后再导入/)
-  assert.match(script, /请先为所有文章补充作者信息/)
+  assert.match(script, /renderArticleImportMetadata/)
+  assert.match(script, /未识别作者，已自动处理/)
+  assert.doesNotMatch(script, /请先为所有文章补充作者信息/)
   assert.match(routesSource, /item\.author = String\(item\.author \|\| ''\)\.trim\(\) \|\| '轻读手记'/)
 })
 
@@ -101,8 +101,8 @@ test('article import starts blank on every entry and keeps complete per-URL prog
   assert.match(script, /state\.importProgress = result\.progress \|\| state\.importProgress/)
   assert.match(script, /if \(state\.importQueryFailed && state\.importJobId\) pollImportJob\(\)/)
   assert.match(script, /item\.mediaWarnings/)
-  assert.match(script, /恢复已移除文字/)
-  assert.match(script, /导入时保留已移除文字（图片不会恢复）/)
+  assert.match(script, /item\.restoreTail \? '重新清理' : '恢复'/)
+  assert.match(script, /将保留已清理文字，图片不会恢复/)
   assert.doesNotMatch(script, /恢复尾部|发布时保留原尾部/)
 })
 

@@ -285,11 +285,7 @@
 .article-document-filters { margin-bottom: 16px; }
 .article-document-filters input { flex: 1; min-width: 180px; }
 .article-document-actions input { flex: 1; min-width: 180px; }
-.article-document-state { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 13px; }
-.article-document-state details { min-width: 0; max-width: 70%; }
-.article-document-state details p { overflow-wrap: anywhere; font-size: 12px; }
-.article-document-image-issue,
-.article-document-duplicate { margin-top: 8px; padding: 10px; border-radius: 8px; background: #faf5e9; overflow-wrap: anywhere; font-size: 13px; }
+.article-document-image-issue { margin-top: 8px; padding: 10px; border-radius: 8px; background: #faf5e9; overflow-wrap: anywhere; font-size: 13px; }
 .article-document-image-issue div { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 .article-document-pagination { justify-content: center; margin-top: 20px; }
 .article-reading-body table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; }
@@ -523,6 +519,63 @@
   gap: 8px;
 }
 
+.article-import-meta {
+  display: flex;
+  min-width: 0;
+  min-height: 24px;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.article-import-meta-source {
+  flex: 1 1 0%;
+  min-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.article-import-meta-source a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.article-import-meta-status {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.article-import-meta--danger .article-import-meta-status { color: var(--danger-color); }
+.article-import-meta--hint .article-import-meta-status { color: var(--brand-primary); }
+.article-import-meta--muted .article-import-meta-status { color: var(--text-secondary); }
+
+.article-import-meta-action {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--wechat-brand);
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.article-import-meta-action:hover,
+.article-import-meta-action:focus-visible { color: var(--wechat-brand); }
+.article-import-meta-action:disabled { cursor: progress; opacity: .55; }
+
 .article-import-entry--failed .article-import-reading-card-viewport {
   border-color: var(--danger-color);
 }
@@ -608,24 +661,6 @@
   pointer-events: none;
 }
 
-.article-import-card-actions {
-  display: flex;
-  width: 100%;
-  min-height: 34px;
-  align-items: center;
-  gap: 8px;
-  overflow: hidden;
-}
-
-.article-import-card-actions span {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .modal-body.article-editor-modal-body {
   width: min(900px, calc(100vw - 64px));
   height: min(840px, calc(100vh - 32px));
@@ -657,27 +692,10 @@
   aspect-ratio: auto;
 }
 
-.article-import-warning,
-.article-import-state {
+.article-import-warning {
   color: var(--warning-color, #9a6700);
   font-size: clamp(12px, 3.73cqi, 15px);
   line-height: 1.6;
-}
-
-.article-import-state {
-  color: var(--danger-color);
-}
-
-.article-import-cleanup {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.article-import-cleanup span {
-  width: auto;
-  white-space: normal;
 }
 
 .article-reading-preview {

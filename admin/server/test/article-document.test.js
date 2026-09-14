@@ -14,6 +14,7 @@ writeState(path.join(dataDir, 'admin-settings.json'), {
 })
 const docs = require('../src/modules/content/article-document.service')
 const parser = require('../src/modules/content/article-document-parser')
+const { cleanArticleMarkdown } = require('../src/modules/content/article-marketing-cleanup')
 const { renderArticleMarkdown } = require('../src/modules/content/article-markdown')
 const { sanitizeArticleHtml } = require('../../../miniprogram/utils/article-content')
 const { appendContentItems, getContentItem, updateContentItem, updateArticles } = require('../src/modules/content/content.store')
@@ -95,6 +96,53 @@ test('invalid or missing original date never becomes today, and malformed metada
   assert(plain.issues.some((issue) => issue.field === 'author'))
 })
 
+test('document articles fill missing metadata, run marketing cleanup, and can restore it from the metadata bar action', async () => {
+  const body = '这是一段足够长的正文，用于验证文档导入会先走统一的营销内容清理流程。这里补充更多正文信息，确保清理后仍保留可读内容，并且不会因为缺少作者或时间而阻止导入。\n\n第二段正文继续说明背景、限制和操作步骤，让文章主体保持完整。\n\n关注我们，获取更多内容'
+  const job = create(['# 无元数据文章\n\n' + body], ['下载/账号/无元数据.md'])
+  const before = Date.now()
+  let result = await ready(job.id)
+  const item = result.previewItems[0]
+  assert.equal(item.author, '轻读手记')
+  assert(item.metadataNotices.includes('author'))
+  assert(item.metadataNotices.includes('publishedAt'))
+  assert(Date.parse(item.publishedAt) >= before - 1000)
+  assert.equal(item.tailCleanup.applied, true)
+  assert.doesNotMatch(item.bodyMarkdown, /关注我们/u)
+  assert.match(item.restoredBodyMarkdown, /关注我们/u)
+  assert.equal(result.counts.ready, 1)
+
+  result = await docs.toggleDocumentCleanup(job.id, context, item.id, item.revision)
+  assert.match(result.previewItems[0].bodyMarkdown, /关注我们/u)
+  result = await docs.toggleDocumentCleanup(job.id, context, item.id, result.previewItems[0].revision)
+  assert.doesNotMatch(result.previewItems[0].bodyMarkdown, /关注我们/u)
+  const published = await docs.publishDocumentJob(job.id, context, fakeStorage)
+  const saved = getContentItem('documents', 'articles', published.publishedIds[0])
+  assert.equal(saved.sourceType, 'document')
+  assert.equal(saved.sourceName, '无元数据.md')
+})
+
+test('document marketing cleanup ignores matching words inside fenced code blocks', () => {
+  const body = '# 代码示例\n\n正文足够长，用于保证清理器不会因为代码块中的示例文本而改变文章主体。这里补充说明和操作步骤，保留完整上下文。\n\n```text\n关注我们，点击阅读原文\n```'
+  const result = cleanArticleMarkdown(body)
+  assert.equal(result.tailCleanup.applied, false)
+  assert.match(result.bodyMarkdown, /关注我们/u)
+})
+
+test('restoring document cleanup keeps transferred images registered for import', async () => {
+  const body = '这是一段足够长的正文，用于验证恢复清理内容时，正文中已经准备好的图片仍然引用已登记素材。这里继续补充说明，保证正文长度和可读性满足导入要求。\n\n![正文配图](https://image.example.com/kept.jpg)\n\n第二段正文继续说明实现细节和使用限制，确保恢复前后文章仍然完整。\n\n关注我们，获取更多内容'
+  const dependencies = { ...fakeStorage, fetchResource: async () => ({ body: jpeg, contentType: 'image/jpeg' }) }
+  const job = create(['# 带图文章\n\n' + body], ['下载/账号/带图.md'])
+  let result = await ready(job.id, dependencies)
+  let item = result.previewItems[0]
+  const preparedImage = item.imageSlots.find((slot) => slot.kind === 'body')?.displayUrl
+  assert.ok(preparedImage)
+  result = await docs.toggleDocumentCleanup(job.id, context, item.id, item.revision, dependencies)
+  item = result.previewItems[0]
+  assert.equal(parser.collectMarkdownImages(item.bodyMarkdown)[0].url, preparedImage)
+  assert.equal(item.status, 'ready')
+  assert.equal((await docs.publishDocumentJob(job.id, context, dependencies)).importedCount, 1)
+})
+
 test('200 documents in deep sibling directories keep separate paths; oversized and hidden manifests are rejected', async () => {
   const texts = Array.from({ length: 200 }, (_, i) => sample('文章 ' + i, '第 ' + i + ' 篇'))
   const paths = texts.map((_text, i) => '下载/账号' + i + '/更深一层/同名.md')
@@ -134,6 +182,15 @@ test('source identity matches historic URL imports and changed sharing parameter
   const result = await ready(job.id, { fetchResource: async () => { throw new Error('重复文章不应下载图片') } })
   assert.equal(result.counts.duplicate, 1)
   assert.equal(result.previewItems[0].duplicateOf.id, 'old-url-article')
+})
+
+test('document and URL imports share the same body fingerprint for duplicate detection', async () => {
+  const body = '跨来源正文指纹测试，标题、作者和文件名都不同，但正文内容保持一致，用于确认两种文章导入方式会统一判重。'
+  appendContentItems('documents', 'articles', [{ id: 'cross-source-url', title: 'URL 标题', author: 'URL 作者', publishedAt: '2024-01-01T00:00:00Z', bodyMarkdown: body, sourceUrl: 'https://mp.weixin.qq.com/s/cross-source-url' }])
+  const job = create([sample('文件标题', body)], ['下载/账号/文件标题.md'])
+  const result = await ready(job.id)
+  assert.equal(result.counts.duplicate, 1)
+  assert.equal(result.previewItems[0].duplicateOf.id, 'cross-source-url')
 })
 
 test('failed images stay in place, successful assets are reused, partial confirmation and a restart retain edits', async () => {

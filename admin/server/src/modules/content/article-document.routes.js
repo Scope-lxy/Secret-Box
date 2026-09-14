@@ -24,6 +24,7 @@ function registerDocumentRoutes(router, requireAdminSession, dependencies = {}) 
   router.post(root + '/:jobId/files', handle((body, context, url) => documents.uploadDocumentChunk(url.params.jobId, context, body.files)))
   router.post(root + '/:jobId/start', handle((_body, context, url) => documents.startDocumentJob(url.params.jobId, context, dependencies), 202))
   router.post(root + '/:jobId/items/:itemId', handle((body, context, url) => documents.editDocumentItem(url.params.jobId, context, url.params.itemId, body.patch || {}, dependencies)))
+  router.post(root + '/:jobId/items/:itemId/cleanup', handle((body, context, url) => documents.toggleDocumentCleanup(url.params.jobId, context, url.params.itemId, body.revision, dependencies)))
   router.post(root + '/:jobId/items/:itemId/image', handle((body, context, url) => documents.changeDocumentImage(url.params.jobId, context, url.params.itemId, body, dependencies)))
   router.post(root + '/:jobId/items/:itemId/remove', handle((_body, context, url) => documents.removeDocumentItem(url.params.jobId, context, url.params.itemId, dependencies)))
   router.post(root + '/:jobId/author', handle(async (body, context, url) => {

@@ -152,6 +152,36 @@
     return `<div class="article-reading-header article-reading-header--stacked"><div class="article-reading-heading"><h1>${escapeHtml(titleText)}</h1>${meta ? `<p class="article-reading-meta">${meta}</p>` : ''}</div>${cover}</div>`
   }
 
+  function renderArticleImportMetadata(item = {}, sourceType = 'url', actionAttribute = '') {
+    const sourceValue = sourceType === 'document'
+      ? String(item.fileName || String(item.filePath || '').split(/[\\/]/u).pop() || '').trim()
+      : String(item.url || item.sourceUrl || '').trim()
+    const sourceMarkup = sourceType === 'document'
+      ? escapeHtml(sourceValue)
+      : sourceValue
+        ? `<a href="${escapeHtml(sourceValue)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceValue)}</a>`
+        : ''
+    const notices = new Set(Array.isArray(item.metadataNotices) ? item.metadataNotices : [])
+    const cleanupApplied = Boolean(item.tailCleanup?.applied && (item.removedTailMarkdown || item.removedTailHtml))
+    const canRestore = cleanupApplied && ['success', 'ready'].includes(item.status)
+    const action = canRestore
+      ? `<button class="article-import-meta-action" ${actionAttribute} type="button">${item.restoreTail ? '重新清理' : '恢复'}</button>`
+      : ''
+    let tone = 'normal', message = '可导入'
+    if (['failed'].includes(item.status)) { tone = 'danger'; message = '读取失败' }
+    else if (item.status === 'duplicate') { tone = 'danger'; message = '重复，已跳过' }
+    else if (['needs_attention'].includes(item.status)) { tone = 'danger'; message = '需处理' }
+    else if (['pending', 'processing', 'waiting_upload', 'queued'].includes(item.status)) { tone = 'muted'; message = '准备中' }
+    else {
+      const prompts = []
+      if (notices.has('author')) prompts.push('未识别作者，已自动处理')
+      if (notices.has('publishedAt')) prompts.push('未识别时间，已自动处理')
+      if (cleanupApplied) prompts.push('已清理营销内容')
+      if (prompts.length) { tone = 'hint'; message = prompts.join('；') }
+    }
+    return `<div class="article-import-meta article-import-meta--${tone}"><span class="article-import-meta-source" title="${escapeHtml(sourceValue)}">${sourceMarkup}</span><span class="article-import-meta-status">${escapeHtml(message)}</span>${action}</div>`
+  }
+
   function hasNonImageContentBetween(container, startNode, endNode) {
     const range = container.ownerDocument.createRange()
     range.setStartAfter(startNode)
@@ -694,7 +724,7 @@
     nodes.previewRemovedSection.classList.toggle('hidden', !data.removedTailHtml)
     nodes.previewRemovedBody.innerHTML = data.removedTailHtml || ''
     nodes.previewCleanupSummary.textContent = data.removedTailHtml ? `${data.tailCleanup?.summary || '已清理推广尾部'}（图片不会恢复）` : ''
-    nodes.previewRestoreTail.textContent = data.restoreTail ? '重新移除已恢复文字' : '恢复已移除文字'
+    nodes.previewRestoreTail.textContent = data.restoreTail ? '重新清理' : '恢复'
     openModal(nodes.previewModal)
   }
 
@@ -759,22 +789,19 @@
       result[item.status] = (result[item.status] || 0) + 1
       return result
     }, {})
-    const completed = Number(counts.success || 0) + Number(counts.failed || 0) + Number(counts.duplicate || 0) + Number(counts.published || 0)
     const total = state.importItems.length
     const failed = Number(counts.failed || 0)
     const duplicate = Number(counts.duplicate || 0)
-    const secondary = [failed ? `失败 ${failed} 篇` : '', duplicate ? `重复 ${duplicate} 篇` : ''].filter(Boolean).join('，')
+    const ready = Number(counts.success || 0)
+    const needsAttention = Number(counts.needs_attention || 0)
     nodes.importSummary.textContent = total
-      ? (completed >= total ? `已抓取 ${completed} 篇` : `已抓取 ${completed}/${total} 篇`)
+      ? `共 ${total} 篇 · 可导入 ${ready} · 需处理 ${needsAttention} · 重复 ${duplicate} · 失败 ${failed} · 已导入 ${Number(counts.published || 0)}`
       : (state.importJobId ? '本批次已清空' : '等待提交链接')
-    const successCount = Number(counts.success || 0)
-    const missingAuthor = state.importItems.filter((item) => item.status === 'success' && !String(item.author || '').trim()).length
-    const success = Math.max(0, successCount - missingAuthor)
-    nodes.importValidCount.textContent = `${success} 篇可导入`
+    nodes.importValidCount.textContent = `${ready} 篇可导入`
     nodes.importValidCount.classList.toggle('hidden', !total)
-    const authorWarning = missingAuthor ? `缺少作者 ${missingAuthor} 篇，请编辑补充` : ''
-    nodes.importResultDetail.textContent = [secondary, authorWarning].filter(Boolean).join('，')
-    nodes.importResultDetail.classList.toggle('hidden', !secondary && !authorWarning)
+    nodes.importResultDetail.textContent = ''
+    nodes.importResultDetail.classList.add('hidden')
+    nodes.importPublish.textContent = `确认导入全部 ${ready} 篇`
     nodes.importList.innerHTML = state.importItems.map((item, index) => {
       const id = item.id || `entry-${index}`
       const canEdit = item.status === 'success'
@@ -784,7 +811,9 @@
       const pending = ['pending', 'processing'].includes(item.status)
       const title = item.title || (item.status === 'failed' ? '抓取失败' : pending ? '正在抓取文章' : item.url || '文章预览')
       const fallbackMeta = item.publishedAt ? '' : item.url || ''
-      const body = item.renderedHtml
+      const body = item.restoreTail && item.restoredBodyHtml
+        ? item.restoredBodyHtml
+        : item.renderedHtml
         || `<p>${escapeHtml(item.error || (pending ? '请稍候，完成后会自动更新当前预览。' : item.status === 'duplicate' ? '检测到重复内容，本篇不会导入。' : '暂无正文内容'))}</p>`
       const preview = renderReadingPreviewCard({
         title,
@@ -798,22 +827,20 @@
       preview.headerHtml = renderReadingHeader({ title, author: item.author, publishedAt: item.publishedAt, metaText: fallbackMeta, coverUrl })
       return `
       <article class="article-import-entry article-import-entry--${escapeHtml(item.status)}">
+        ${renderArticleImportMetadata(item, 'url', `data-import-restore="${escapeHtml(id)}"`)}
         <div class="article-import-reading-card-viewport">
           <div class="article-reading-preview article-reading-layout article-reading-card-scroll article-reading-preview--stacked article-reading-layout--stacked">
             ${preview.headerHtml}
-            ${(item.mediaWarnings || []).map((warning) => `<p class="article-import-warning">${escapeHtml(warning.message || warning)}</p>`).join('')}
-            ${item.status === 'duplicate' ? '<p class="article-import-state">检测到重复内容，本篇不会导入。</p>' : ''}
-            ${item.status === 'success' && !String(item.author || '').trim() ? '<p class="article-import-state">未识别到作者，请编辑补充后再导入。</p>' : ''}
+            ${(item.mediaWarnings || []).filter((warning) => !['body-image-filtered', 'removed-tail-image'].includes(warning.type)).map((warning) => `<p class="article-import-warning">${escapeHtml(warning.message || warning)}</p>`).join('')}
             <div class="article-reading-body">${preview.bodyHtml}</div>
           </div>
           ${canEdit || canRemove || canRetry ? `<div class="article-import-card-tools">${canRemove ? `<button class="article-import-tool-button article-import-tool-button--danger" data-import-remove="${escapeHtml(id)}" type="button" aria-label="从本批次移除" title="从本批次移除">${importToolIcons.delete}</button>` : ''}${canRetry ? `<button class="article-import-tool-button" data-import-retry="${escapeHtml(id)}" type="button" aria-label="重新抓取该篇" title="重新抓取该篇">${importToolIcons.retry}</button>` : ''}${canEdit ? `<button class="article-import-tool-button" data-import-edit="${escapeHtml(id)}" type="button" aria-label="编辑当前文章" title="编辑当前文章">${importToolIcons.edit}</button>` : ''}</div>` : ''}
         </div>
-        ${item.removedTailHtml ? `<div class="article-import-card-actions"><button class="btn-text" data-import-restore="${escapeHtml(id)}" type="button">${item.restoreTail ? '重新移除已恢复文字' : '恢复已移除文字'}</button><span>${escapeHtml(item.restoreTail ? '导入时保留已移除文字（图片不会恢复）' : `${item.tailCleanup?.summary || '已清理推广尾部'}（图片不会恢复）`)}</span></div>` : ''}
       </article>
     `
     }).join('') || `<div class="import-empty">${state.importJobId ? '本批次没有保留的文章' : '尚未提交文章链接'}</div>`
     nodes.importPublish.classList.toggle('hidden', !state.importItems.some((item) => item.status === 'success'))
-    nodes.importPublish.disabled = ['queued', 'processing'].includes(state.importJobStatus) || missingAuthor > 0 || success === 0
+    nodes.importPublish.disabled = ['queued', 'processing'].includes(state.importJobStatus) || ready === 0
   }
 
   function normalizeImportItems(result) {
@@ -827,18 +854,27 @@
     const itemsById = new Map(items.map((item) => [item.id, item]))
     const itemsByUrl = new Map(items.map((item) => [item.sourceUrl, item]))
     const errorsByUrl = new Map(errors.map((item) => [item.url, item]))
+    const applyEditedItem = (item) => {
+      const edited = editedById.get(item.id)
+      if (!edited) return item
+      const notices = new Set(Array.isArray(item.metadataNotices) ? item.metadataNotices : [])
+      if (String(edited.author || '').trim()) notices.delete('author')
+      if (String(edited.publishedAt || '').trim()) notices.delete('publishedAt')
+      return {
+        ...item,
+        title: edited.title,
+        bodyMarkdown: edited.bodyMarkdown,
+        coverImage: edited.coverImage,
+        publishedAt: edited.publishedAt,
+        author: edited.author,
+        renderedHtml: edited.renderedHtml,
+        metadataNotices: [...notices],
+      }
+    }
     if (!entries.length) {
       return [
         ...items.map((item) => ({
-          ...item,
-          ...(editedById.has(item.id) ? {
-            title: editedById.get(item.id).title,
-            bodyMarkdown: editedById.get(item.id).bodyMarkdown,
-            coverImage: editedById.get(item.id).coverImage,
-            publishedAt: editedById.get(item.id).publishedAt,
-            author: editedById.get(item.id).author,
-            renderedHtml: editedById.get(item.id).renderedHtml,
-          } : {}),
+          ...applyEditedItem(item),
           restoreTail: restoredById.get(item.id) === true,
           status: item.duplicate ? 'duplicate' : 'success',
         })),
@@ -849,15 +885,7 @@
       const item = itemsById.get(entry.itemId) || itemsByUrl.get(entry.url)
       if (item) {
         return {
-          ...item,
-          ...(editedById.has(item.id) ? {
-            title: editedById.get(item.id).title,
-            bodyMarkdown: editedById.get(item.id).bodyMarkdown,
-            coverImage: editedById.get(item.id).coverImage,
-            publishedAt: editedById.get(item.id).publishedAt,
-            author: editedById.get(item.id).author,
-            renderedHtml: editedById.get(item.id).renderedHtml,
-          } : {}),
+          ...applyEditedItem(item),
           url: entry.url,
           restoreTail: restoredById.get(item.id) === true,
           status: item.duplicate ? 'duplicate' : 'success',
@@ -947,11 +975,6 @@
 
   async function publishImported() {
     const selectedIds = state.importItems.filter((item) => item.status === 'success').map((item) => item.id)
-    const missingAuthor = state.importItems.find((item) => item.status === 'success' && !String(item.author || '').trim())
-    if (missingAuthor) {
-      showToast('请先为所有文章补充作者信息')
-      return
-    }
     const restoreTailIds = state.importItems.filter((item) => item.restoreTail && selectedIds.includes(item.id)).map((item) => item.id)
     const editedItems = state.importItems
       .filter((item) => selectedIds.includes(item.id))
@@ -1159,15 +1182,15 @@
       const article = state.importItems.find((item) => item.id === state.previewImportId)
       if (!article) return
       article.restoreTail = !article.restoreTail
-      nodes.previewRestoreTail.textContent = article.restoreTail ? '重新移除已恢复文字' : '恢复已移除文字'
-      nodes.previewCleanupSummary.textContent = article.restoreTail ? '已选择恢复，导入时将保留已移除文字，图片不会恢复' : `${article.tailCleanup?.summary || ''}${article.removedTailHtml ? '（图片不会恢复）' : ''}`
+      nodes.previewRestoreTail.textContent = article.restoreTail ? '重新清理' : '恢复'
+      nodes.previewCleanupSummary.textContent = article.restoreTail ? '已选择恢复，导入时将保留已清理文字，图片不会恢复' : `${article.tailCleanup?.summary || ''}${article.removedTailHtml ? '（图片不会恢复）' : ''}`
       renderImportItems()
     })
   }
 
   let selectedArticleSource = 'document'
   const documentImport = window.createArticleDocumentImport?.({
-    apiRequest: (...args) => apiRequest(...args), escapeHtml, renderReadingPreviewCard, coverImageUrl,
+    apiRequest: (...args) => apiRequest(...args), escapeHtml, renderReadingPreviewCard, coverImageUrl, renderArticleImportMetadata,
     icons: importToolIcons, openEditor, openConfirm, showToast,
     uploadImage: async (file) => {
       const result = await uploadImageFileToCos(file, { label: file.name, usage: 'article' })

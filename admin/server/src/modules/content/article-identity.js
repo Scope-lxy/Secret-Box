@@ -55,9 +55,11 @@ function articleDeduplicationKeys(item = {}) {
   const identity = safeArticleSource(item.sourceUrl).sourceIdentity
   return [
     identity && 'source:' + identity,
+    'content:' + articleTextFingerprint(item),
+    // Keep the historical source hash readable so old URL records can still
+    // block an exact legacy duplicate. New imports rely on canonical source
+    // identity and the normalized body fingerprint above.
     item.sourceHash && 'legacy:' + item.sourceHash,
-    item.importFingerprint && 'import:' + item.importFingerprint,
-    'content:' + articleFingerprint(item),
   ].filter(Boolean)
 }
 

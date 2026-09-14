@@ -514,7 +514,7 @@ for (const fixture of [
   })
 }
 
-test('导入发布拒绝缺少作者的文章，并允许编辑时补充作者', () => {
+test('导入文章缺少作者时使用统一默认作者，也允许编辑时补充作者', () => {
   const publishable = [{
     id: 'article-without-author',
     title: '标题',
@@ -522,17 +522,15 @@ test('导入发布拒绝缺少作者的文章，并允许编辑时补充作者',
     bodyMarkdown: '正文',
     publishedAt: new Date().toISOString(),
   }]
-  assert.throws(
-    () => normalizeEditedItems([{
-      id: 'article-without-author',
-      title: '标题',
-      bodyMarkdown: '正文',
-      coverImage: null,
-      publishedAt: new Date().toISOString(),
-      author: '',
-    }], publishable),
-    (error) => error.code === 'ARTICLE_AUTHOR_EMPTY' && /作者不能为空/u.test(error.message),
-  )
+  const defaulted = normalizeEditedItems([{
+    id: 'article-without-author',
+    title: '标题',
+    bodyMarkdown: '正文',
+    coverImage: null,
+    publishedAt: new Date().toISOString(),
+    author: '',
+  }], publishable)
+  assert.equal(defaulted.get('article-without-author').author, '轻读手记')
   const edited = normalizeEditedItems([{
     id: 'article-without-author',
     title: '标题',
@@ -544,18 +542,24 @@ test('导入发布拒绝缺少作者的文章，并允许编辑时补充作者',
   assert.equal(edited.get('article-without-author').author, '补充作者')
 })
 
-test('公众号没有有效发布时间时明确失败，不使用抓取时间冒充', () => {
+test('公众号缺少作者或发布时间时自动补全，并记录元信息提示', async () => {
   const html = '<!doctype html><html><head><meta property="og:title" content="无时间测试"></head><body><div id="js_content"><p>正文内容足够长，用于验证没有时间字段时才使用当前时间作为回退值。</p></div></body></html>'
-  assert.throws(
-    () => parseWechatArticleHtml(html, sourceUrl),
-    (error) => error.code === 'ARTICLE_PUBLISHED_AT_MISSING' && /原始发布时间/u.test(error.message),
-  )
+  const parsed = parseWechatArticleHtml(html, sourceUrl)
+  assert.equal(parsed.author, '')
+  assert.equal(parsed.publishedAt, '')
+  assert.deepEqual(parsed.metadataNotices, ['author', 'publishedAt'])
+  const item = await importOneArticle(sourceUrl, {
+    fetchResource: async (url, { kind }) => {
+      assert.equal(kind, 'page')
+      return { body: Buffer.from(html), contentType: 'text/html', finalUrl: url, headers: {}, status: 200 }
+    },
+  })
+  assert.equal(item.author, '轻读手记')
+  assert.ok(Date.parse(item.publishedAt))
+  assert.deepEqual(item.metadataNotices, ['author', 'publishedAt'])
 
   const invalidMetaHtml = '<!doctype html><html><head><meta property="og:title" content="无效时间测试"><meta name="publish_time" content="not-a-date"></head><body><div id="js_content"><p>正文内容足够长，用于验证无效时间字段不会回退为当前抓取时间。</p></div></body></html>'
-  assert.throws(
-    () => parseWechatArticleHtml(invalidMetaHtml, sourceUrl),
-    (error) => error.code === 'ARTICLE_PUBLISHED_AT_MISSING',
-  )
+  assert.deepEqual(parseWechatArticleHtml(invalidMetaHtml, sourceUrl).metadataNotices, ['author', 'publishedAt'])
 })
 
 test('无效的优先时间字段不会遮蔽脚本中的有效原始发布时间', () => {
@@ -760,6 +764,7 @@ test('article import creates a preview job, publishes once, and detects a duplic
   assert.match(firstReady.items[0].coverImage.mediumUrl, /^https:\/\/media\.example\.com\//)
   assert.match(firstReady.items[0].bodyMarkdown, /https:\/\/media\.example\.com/)
   assert.match(firstReady.items[0].renderedHtml, /第一段/)
+  assert.match(firstReady.items[0].restoredBodyHtml, /第一段/)
   const storedJob = getDatabase().prepare('SELECT item_json FROM article_import_jobs WHERE job_id = ?').get(first.id)
   assert.equal(JSON.parse(storedJob.item_json).items[0].author, '测试公众号')
   assert.doesNotMatch(storedJob.item_json, /bodyHtml|previewHtml|renderedHtml/)
@@ -1231,5 +1236,6 @@ test('发布保存编辑后的作者、标题、Markdown、封面和发布时间
   assert.throws(() => normalizeEditedItems([{ ...validEdited, id: 'not-selected' }], [item]), /不在本次发布范围/)
   assert.throws(() => normalizeEditedItems([{ ...validEdited, coverImage: { id: '', url: 'bad' } }], [item]), /封面格式无效/)
   assert.throws(() => normalizeEditedItems([{ ...validEdited, publishedAt: 'not-a-date' }], [item]), /发布时间无效/)
-  assert.throws(() => normalizeEditedItems([{ ...validEdited, publishedAt: null }], [item]), /发布时间无效/)
+  const defaulted = normalizeEditedItems([{ ...validEdited, publishedAt: null }], [item])
+  assert.ok(Date.parse(defaulted.get('item-1').publishedAt))
 })

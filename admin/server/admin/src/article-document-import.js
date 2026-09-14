@@ -14,7 +14,6 @@ window.createArticleDocumentImport = function createArticleDocumentImport(bridge
   const state = { context: {}, job: null, page: 1, filter: '', q: '', timer: null, generation: 0, busy: false, active: false, uploads: null, imageTarget: null }
   window.isArticleDocumentUploading = () => state.busy
   const escape = bridge.escapeHtml
-  const statusNames = { ready: '可导入', needs_attention: '需处理', duplicate: '重复，自动跳过', failed: '文件读取失败', waiting_upload: '等待上传', pending: '待准备', processing: '准备图片中', imported: '已导入', removed: '已移除' }
   const isProcessing = () => state.busy || ['queued', 'processing'].includes(state.job?.status)
   const request = (suffix = '', body, query = {}) => bridge.apiRequest('/api/admin/articles/documents' + suffix + '?' + new URLSearchParams({ ...state.context, ...query }), body === undefined ? undefined : { method: 'POST', body: JSON.stringify(body) })
   const lock = (locked) => window.dispatchEvent(new CustomEvent('content-import-target-lock', { detail: { locked } }))
@@ -25,7 +24,7 @@ window.createArticleDocumentImport = function createArticleDocumentImport(bridge
   function render() {
     const job = state.job, counts = job?.counts || {}
     const ready = counts.ready || 0
-    nodes.summary.textContent = job ? '共 ' + job.total + ' 份 · 可导入 ' + ready + ' · 需处理 ' + (counts.needs_attention || 0) + ' · 重复 ' + (counts.duplicate || 0) + ' · 失败 ' + (counts.failed || 0) + ' · 已导入 ' + (counts.imported || 0) + (job.skippedCount ? ' · 跳过 ' + job.skippedCount + ' 个非文章文件或辅助目录' : '') : '选择文件夹开始'
+    nodes.summary.textContent = job ? '共 ' + job.total + ' 篇 · 可导入 ' + ready + ' · 需处理 ' + (counts.needs_attention || 0) + ' · 重复 ' + (counts.duplicate || 0) + ' · 失败 ' + (counts.failed || 0) + ' · 已导入 ' + (counts.imported || 0) + (job.skippedCount ? ' · 跳过 ' + job.skippedCount + ' 个非文章文件或辅助目录' : '') : '选择文件夹开始'
     nodes.publish.textContent = '确认导入全部 ' + ready + ' 篇'
     nodes.publish.disabled = !ready || isProcessing()
     nodes.publish.classList.toggle('hidden', !job || job.status === 'complete')
@@ -44,10 +43,8 @@ window.createArticleDocumentImport = function createArticleDocumentImport(bridge
       const images = (item.imageSlots || []).filter((slot) => slot.status === 'failed').map((slot) =>
         '<div class="article-document-image-issue"><span>' + escape(slot.kind === 'cover' ? '封面' : '正文图 ' + (slot.occurrence + 1)) + '：' + escape(slot.error) + '</span><div>' +
         ['retry', 'replace', 'remove'].map((action, index) => '<button class="btn-text" type="button" data-doc-image="' + action + '" data-item="' + escape(item.id) + '" data-slot="' + escape(slot.id) + '">' + ['重试', '本地替换', '移除该图'][index] + '</button>').join('') + '</div></div>').join('')
-      const duplicate = item.duplicateOf || item.possibleDuplicate
       return '<article class="article-import-entry article-document-entry" data-document-id="' + escape(item.id) + '">' +
-        '<div class="article-document-state"><span>' + escape(statusNames[item.status] || item.status) + '</span><details><summary>文件信息</summary><p>' + escape(item.filePath) + '</p>' +
-        (item.sourceUrl ? '<p>原文：' + escape(item.sourceUrl) + '</p>' : '') + '</details></div>' +
+        (bridge.renderArticleImportMetadata ? bridge.renderArticleImportMetadata(item, 'document', 'data-doc-cleanup="' + escape(item.id) + '" data-doc-revision="' + escape(item.revision) + '"') : '<div class="article-import-meta"><span>' + escape(item.fileName || String(item.filePath || '').split(/[\\/]/u).pop() || '') + '</span></div>') +
         '<div class="article-import-reading-card-viewport"><div class="article-reading-preview article-reading-layout article-reading-card-scroll article-reading-preview--stacked article-reading-layout--stacked">' +
         preview.headerHtml + '<div class="article-reading-body">' + preview.bodyHtml + '</div></div>' +
         '<div class="article-import-card-tools"><button class="article-import-tool-button article-import-tool-button--danger" data-doc-remove="' + escape(item.id) + '" aria-label="从本批次移除" title="从本批次移除" type="button">' + bridge.icons.delete + '</button>' +
@@ -55,9 +52,6 @@ window.createArticleDocumentImport = function createArticleDocumentImport(bridge
         '</div></div>' +
         (issueText.length ? '<p class="article-import-warning">' + issueText.map(escape).join('；') + '</p>' : '') +
         (item.error ? '<p class="article-import-warning">' + escape(item.error) + '</p>' : '') + images +
-        (duplicate ? '<div class="article-document-duplicate">' + escape(item.duplicateOf ? '已有文章，文件内容可能有更新：' : '疑似重复：') + escape(duplicate.title) +
-          (duplicate.existing ? ' <button class="btn-text" data-doc-view-existing="' + escape(item.id) + '" type="button">查看已有文章</button>' : '（同批文件）') +
-          (item.possibleDuplicate && !item.duplicateOf && !item.acceptAsNew ? ' <button class="btn-text" data-doc-accept="' + escape(item.id) + '" type="button">保留为新文章</button>' : '') + '</div>' : '') +
         '</article>'
     }).join('') || '<div class="import-empty">' + (job ? (job.status === 'complete' ? '本批处理完成，可以继续选择下一个文件夹。' : '当前筛选没有文章。') : '可直接选择“下载”，读取各账号子目录里的文章。') + '</div>'
     nodes.list.querySelectorAll('img').forEach((image) => { image.loading = 'lazy' })
@@ -219,13 +213,12 @@ window.createArticleDocumentImport = function createArticleDocumentImport(bridge
   nodes.list.addEventListener('click', (event) => {
     const button = event.target.closest('button')
     if (!button || isProcessing()) return
-    const id = button.dataset.docEdit || button.dataset.docRemove || button.dataset.docAccept || button.dataset.docViewExisting || button.dataset.item
+    const id = button.dataset.docEdit || button.dataset.docRemove || button.dataset.docCleanup || button.dataset.item
     const item = state.job?.previewItems.find((entry) => entry.id === id)
     if (!item) return
     if (button.dataset.docEdit) bridge.openEditor(item, 'document')
     else if (button.dataset.docRemove) void mutation('/items/' + encodeURIComponent(id) + '/remove').catch(fail)
-    else if (button.dataset.docAccept) void mutation('/items/' + encodeURIComponent(id), { patch: { revision: item.revision, acceptAsNew: true } }).catch(fail)
-    else if (button.dataset.docViewExisting) void bridge.showExisting(item.duplicateOf || item.possibleDuplicate, state.context).catch(fail)
+    else if (button.dataset.docCleanup) void mutation('/items/' + encodeURIComponent(id) + '/cleanup', { revision: item.revision }).catch(fail)
     else if (button.dataset.docImage === 'replace') { state.imageTarget = { itemId: id, slotId: button.dataset.slot, revision: item.revision }; nodes.replace.click() }
     else if (button.dataset.docImage) void mutation('/items/' + encodeURIComponent(id) + '/image', { action: button.dataset.docImage, slotId: button.dataset.slot, revision: item.revision }).catch(fail)
   })

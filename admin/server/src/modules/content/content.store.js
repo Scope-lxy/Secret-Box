@@ -123,6 +123,10 @@ function normalizeArticles(items, existing = []) {
         ? { id: String(item.coverImage.id || '').trim() }
         : null,
       sourceUrl: String(item.sourceUrl || '').trim(),
+      sourceType: ['url', 'document'].includes(String(item.sourceType || '').trim())
+        ? String(item.sourceType).trim()
+        : (String(item.sourceUrl || '').trim() ? 'url' : ''),
+      sourceName: String(item.sourceName || item.fileName || '').trim(),
       sourceHash: String(item.sourceHash || '').trim().toLowerCase(),
       sourceIdentity: safeArticleSource(item.sourceUrl).sourceIdentity,
       importFingerprint: /^[a-f0-9]{64}$/.test(item.importFingerprint || '') ? item.importFingerprint : '',

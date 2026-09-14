@@ -27,6 +27,7 @@ const boundaryBodyImageMinLongEdge = 400
 const boundaryBodyImageAspectRatio = 5
 const boundaryBodyImageMaxTextLength = 40
 const boundaryRecommendationTitlePattern = /(?:推荐阅读|相关推荐|相关阅读|延伸阅读|往期(?:精选|回顾)|近期精选|更多精彩|精选推荐|热门文章|热文推荐|相关文章|猜你喜欢|你可能还喜欢|阅读推荐|推荐更多|更多(?:精彩|文章|内容|标题))/u
+const DEFAULT_AUTHOR = '轻读手记'
 const activeJobIds = new Set()
 let processingQueue = Promise.resolve()
 
@@ -672,14 +673,15 @@ function parseWechatArticleHtml(html, sourceUrl) {
   const coverUrl = resolveWechatImageUrl(coverSource, sourceUrl)
   const author = extractAuthor(document)
   const publishedAt = extractPublishedAt(document, html)
-  if (!publishedAt) {
-    throw new ArticleImportError('ARTICLE_PUBLISHED_AT_MISSING', '未能识别公众号原始发布时间，请确认文章有效后重新爬取')
-  }
+  const metadataNotices = []
+  if (!author) metadataNotices.push('author')
+  if (!publishedAt) metadataNotices.push('publishedAt')
   return {
     normalizedHtml,
     coverUrl,
     author,
     publishedAt,
+    metadataNotices,
     title,
   }
 }
@@ -1035,6 +1037,7 @@ function withDerivedImportPreviews(job) {
         ...publicItem,
         coverImage: covers.get(item.coverImage?.id) || item.coverImage || null,
         renderedHtml: renderArticleMarkdown(item.bodyMarkdown),
+        restoredBodyHtml: renderArticleMarkdown(item.restoredBodyMarkdown),
         removedTailHtml: renderArticleMarkdown(item.removedTailMarkdown),
       }
     }),
@@ -1143,14 +1146,15 @@ async function importOneArticle(sourceUrl, dependencies = {}) {
   return {
     id: `article-${sourceHash.slice(0, 24)}`,
     title: parsed.title,
-    author: parsed.author,
+    author: parsed.author || DEFAULT_AUTHOR,
     bodyMarkdown: converted.bodyMarkdown,
     bodyImageAssetIds: media.bodyImageAssetIds,
     removedTailMarkdown: converted.removedTailMarkdown,
     restoredBodyMarkdown: converted.restoredBodyMarkdown,
     tailCleanup: converted.tailCleanup,
     mediaWarnings,
-    publishedAt: parsed.publishedAt,
+    publishedAt: parsed.publishedAt || new Date().toISOString(),
+    metadataNotices: parsed.metadataNotices || [],
     coverImage: media.coverImage,
     sourceUrl: canonicalUrl.toString(),
     sourceHash,
@@ -1501,11 +1505,6 @@ async function publishArticleImportJob(jobId, selectedIds = [], restoreTailIds =
     throw new ArticleImportError('INVALID_RESTORE_SELECTION', '恢复尾部的文章不在本次发布范围内')
   }
   const edited = normalizeEditedItems(editedItems, items)
-  const missingAuthor = items.find((item) => {
-    const editedItem = edited.get(item.id)
-    return !String((editedItem ? editedItem.author : item.author) || '').trim()
-  })
-  if (missingAuthor) throw new ArticleImportError('ARTICLE_AUTHOR_EMPTY', '文章作者不能为空，请编辑补充后再导入')
   const publishItems = items.map((item) => {
     const editedItem = edited.get(item.id)
     return {
@@ -1518,8 +1517,10 @@ async function publishArticleImportJob(jobId, selectedIds = [], restoreTailIds =
       publishedAt: editedItem ? editedItem.publishedAt : item.publishedAt,
       coverImage: editedItem ? editedItem.coverImage : item.coverImage,
       sourceUrl: item.sourceUrl,
+      sourceType: 'url',
+      sourceName: item.sourceUrl,
       sourceHash: item.sourceHash,
-      author: editedItem ? editedItem.author : item.author,
+      author: (editedItem ? editedItem.author : item.author) || DEFAULT_AUTHOR,
       likeCount: item.likeCount,
       favoriteCount: item.favoriteCount,
     }
@@ -1565,10 +1566,10 @@ function normalizeEditedItems(value, publishableItems) {
     seen.add(id)
     const title = String(entry.title || '').trim()
     const sourceItem = publishableItems.find((item) => item.id === id)
-    const author = Object.hasOwn(entry, 'author') ? String(entry.author || '').trim() : String(sourceItem?.author || '').trim()
+    const author = (Object.hasOwn(entry, 'author') ? String(entry.author || '').trim() : String(sourceItem?.author || '').trim()) || DEFAULT_AUTHOR
     const bodyMarkdown = normalizeArticleMarkdown(entry.bodyMarkdown)
     const publishedAtValue = typeof entry.publishedAt === 'string' ? entry.publishedAt.trim() : ''
-    const publishedAtDate = new Date(publishedAtValue)
+    const publishedAtDate = new Date(publishedAtValue || new Date().toISOString())
     const coverImage = entry.coverImage === null
       ? null
       : entry.coverImage && typeof entry.coverImage === 'object' && !Array.isArray(entry.coverImage)
@@ -1576,7 +1577,6 @@ function normalizeEditedItems(value, publishableItems) {
         ? { id: String(entry.coverImage.id).trim() }
         : undefined
     if (!title) throw new ArticleImportError('ARTICLE_TITLE_EMPTY', '文章标题不能为空')
-    if (!author) throw new ArticleImportError('ARTICLE_AUTHOR_EMPTY', '文章作者不能为空，请编辑补充后再导入')
     if (!bodyMarkdown) throw new ArticleImportError('ARTICLE_BODY_EMPTY', '文章正文不能为空')
     if (Number.isNaN(publishedAtDate.getTime())) throw new ArticleImportError('ARTICLE_PUBLISHED_AT_INVALID', '文章发布时间无效')
     if (coverImage === undefined) throw new ArticleImportError('ARTICLE_COVER_INVALID', '文章封面格式无效')

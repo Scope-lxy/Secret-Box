@@ -5,12 +5,14 @@ const { getImagesByIds, getImagesByOriginalSha256 } = require('../images/image.s
 const { reclaimImageAssets } = require('../images/image-reclamation.service')
 const { appendDeduplicatedContentItems } = require('./content.store')
 const { renderArticleMarkdown, hasReadableArticleContent } = require('./article-markdown')
-const { articleSource, safeArticleSource, articleFingerprint, articleTextFingerprint, articleDeduplicationKeys, normalizedText } = require('./article-identity')
+const { articleSource, safeArticleSource, articleDeduplicationKeys, normalizedText } = require('./article-identity')
 const { parseArticleDocument, parseDocumentDate, decodeDocument, collectMarkdownImages, replaceMarkdownImages } = require('./article-document-parser')
+const { cleanArticleMarkdown } = require('./article-marketing-cleanup')
 const { activeJobIds, readJob, saveJob, prepareImage, uploadPreparedImage, registerImportedArticleImage, toTransferredExistingImage, validateRemoteUrl } = require('./article-import.service')
 
 const limits = { files: 200, fileBytes: 1024 * 1024, totalBytes: 20 * 1024 * 1024, chunkBytes: 2 * 1024 * 1024 }
 const terminal = new Set(['imported', 'removed', 'duplicate'])
+const DEFAULT_AUTHOR = '轻读手记'
 let queue = Promise.resolve()
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex')
 const isoNow = () => new Date().toISOString()
@@ -37,6 +39,37 @@ function readDocumentJob(id, context) {
 
 function ensureIdle(job) {
   if (activeJobIds.has(job.id)) throw new Error('图片正在准备，请完成后再编辑或确认')
+}
+
+function applyMetadataDefaults(item) {
+  const notices = new Set(Array.isArray(item.metadataNotices) ? item.metadataNotices : [])
+  if (!String(item.author || '').trim()) {
+    item.author = DEFAULT_AUTHOR
+    notices.add('author')
+  }
+  if (!parseDocumentDate(item.publishedAt)) {
+    item.publishedAt = isoNow()
+    notices.add('publishedAt')
+  }
+  item.metadataNotices = [...notices]
+  item.issues = (item.issues || []).filter((issue) => !['author', 'publishedAt'].includes(issue.field))
+}
+
+function prepareMarketingCleanup(item) {
+  if (item._marketingPrepared || !String(item.bodyMarkdown || '').trim()) return
+  const cleanup = cleanArticleMarkdown(item.bodyMarkdown)
+  item.bodyMarkdown = cleanup.bodyMarkdown
+  item._cleanedBodyMarkdown = cleanup.bodyMarkdown
+  item.restoredBodyMarkdown = cleanup.restoredBodyMarkdown
+  item.removedTailMarkdown = cleanup.removedTailMarkdown
+  item.tailCleanup = cleanup.tailCleanup
+  item.restoreTail = false
+  item._marketingPrepared = true
+}
+
+function replaceTrackedImageReferences(markdown, sourceUrl, targetUrl) {
+  const images = collectMarkdownImages(markdown).filter((image) => image.url === sourceUrl)
+  return images.length ? replaceMarkdownImages(markdown, images.map((image) => ({ image, url: targetUrl }))) : markdown
 }
 
 function manifestFile(file, index) {
@@ -92,7 +125,10 @@ function uploadDocumentChunk(id, context, files) {
     if (item.fileHash || item.status !== 'waiting_upload') continue
     try {
       if (error) throw new Error(error)
-      Object.assign(item, parseArticleDocument(decodeDocument(buffer, item.fileName), item.fileName), { fileHash, status: 'pending', revision: 1 })
+      const parsed = parseArticleDocument(decodeDocument(buffer, item.fileName), item.fileName)
+      Object.assign(item, parsed, { fileHash, status: 'pending', revision: 1 })
+      applyMetadataDefaults(item)
+      prepareMarketingCleanup(item)
       item.needsTitleConfirmation = item.issues.some((issue) => issue.field === 'title')
       item.imageSlots = makeImageSlots(item)
     } catch (problem) { Object.assign(item, { status: 'failed', error: problem.message, fileHash }) }
@@ -120,15 +156,9 @@ function existingArticles(poolId) {
 function refreshDuplicates(job) {
   const previous = existingArticles(job.poolId)
   const previousIds = new Set(previous.map((item) => item.id))
-  const byKey = new Map(), byTitle = new Map(), byText = new Map()
-  const pair = (author, value) => JSON.stringify([author, value])
+  const byKey = new Map()
   const index = (item, keys = articleDeduplicationKeys(item)) => {
     keys.forEach((key) => { if (!byKey.has(key)) byKey.set(key, item) })
-    const author = normalizedText(item.author)
-    if (!author) return
-    const titleKey = pair(author, normalizedText(item.title)), textKey = pair(author, articleTextFingerprint(item))
-    if (!byTitle.has(titleKey)) byTitle.set(titleKey, item)
-    if (!byText.has(textKey)) byText.set(textKey, item)
   }
   previous.forEach((item) => index(item))
   for (const item of job.items) {
@@ -144,10 +174,8 @@ function refreshDuplicates(job) {
     delete item.duplicateOf
     item.duplicate = false
     if (item.status === 'duplicate') item.status = 'pending'
-    const author = normalizedText(item.author)
-    const similar = author && (byTitle.get(pair(author, normalizedText(item.title))) || byText.get(pair(author, articleTextFingerprint(item))))
-    item.possibleDuplicate = similar ? { id: similar.id, title: similar.title, existing: previousIds.has(similar.id) } : null
-    if (!similar) item.acceptAsNew = false
+    delete item.possibleDuplicate
+    delete item.acceptAsNew
     index(item, keys)
   }
 }
@@ -157,15 +185,14 @@ function refreshItem(item) {
   const problems = (item.issues || []).filter((issue) => !['title', 'author', 'publishedAt', 'bodyMarkdown'].includes(issue.field))
   if (!item.title?.trim()) problems.push({ field: 'title', message: '缺少标题' })
   if (item.needsTitleConfirmation) problems.push({ field: 'title', message: '请核对文件名标题并保存' })
-  if (!item.author?.trim()) problems.push({ field: 'author', message: '缺少账号 / 作者' })
-  if (!parseDocumentDate(item.publishedAt)) problems.push({ field: 'publishedAt', message: '缺少有效的原始发布时间' })
+  applyMetadataDefaults(item)
   if (!hasReadableArticleContent(item.bodyMarkdown)) problems.push({ field: 'bodyMarkdown', message: '缺少可读正文' })
   item.issues = problems
   const pending = item.imageSlots?.some((slot) => slot.status === 'pending')
   const failed = item.imageSlots?.some((slot) => slot.status === 'failed')
   item.bodyImageAssetIds = [...new Set((item.imageSlots || []).filter((slot) => slot.kind === 'body' && slot.status === 'ready').map((slot) => slot.assetId))]
   if (pending) item.status = 'pending'
-  else item.status = problems.length || failed || (item.possibleDuplicate && !item.acceptAsNew) ? 'needs_attention' : 'ready'
+  else item.status = problems.length || failed ? 'needs_attention' : 'ready'
 }
 
 function previewItem(item) {
@@ -239,7 +266,11 @@ async function transferSlot(job, item, slot, dependencies) {
   if (slot.kind === 'cover') item.coverImage = { id: asset.id }
   else {
     const image = collectMarkdownImages(item.bodyMarkdown)[slot.occurrence]
-    if (image) item.bodyMarkdown = replaceMarkdownImages(item.bodyMarkdown, [{ image, url: slot.displayUrl }])
+    if (image) {
+      item.bodyMarkdown = replaceMarkdownImages(item.bodyMarkdown, [{ image, url: slot.displayUrl }])
+      item._cleanedBodyMarkdown = replaceTrackedImageReferences(item._cleanedBodyMarkdown, image.url, slot.displayUrl)
+      item.restoredBodyMarkdown = replaceTrackedImageReferences(item.restoredBodyMarkdown, image.url, slot.displayUrl)
+    }
   }
   refreshItem(item)
   touch(job)
@@ -250,6 +281,11 @@ async function processDocumentJob(id, dependencies = {}) {
   if (!job || job.sourceType !== 'document') { activeJobIds.delete(id); return }
   try {
     job.status = 'processing'
+    job.items.forEach((item) => {
+      prepareMarketingCleanup(item)
+      applyMetadataDefaults(item)
+      if (!Array.isArray(item.imageSlots)) item.imageSlots = makeImageSlots(item)
+    })
     refreshDuplicates(job)
     touch(job)
     for (const item of job.items) {
@@ -305,7 +341,7 @@ function referencedAssets(job) {
 }
 
 function compactCompletedJob(job) {
-  job.items.forEach((item) => Object.assign(item, { bodyMarkdown: '', coverImage: null, coverUrl: '', imageSlots: [], bodyImageAssetIds: [] }))
+  job.items.forEach((item) => Object.assign(item, { bodyMarkdown: '', restoredBodyMarkdown: '', _cleanedBodyMarkdown: '', removedTailMarkdown: '', coverImage: null, coverUrl: '', imageSlots: [], bodyImageAssetIds: [] }))
 }
 
 async function cleanUnused(job, before, dependencies) {
@@ -326,13 +362,18 @@ async function editDocumentItem(id, context, itemId, patch, dependencies = {}) {
   ensureIdle(job)
   const item = itemIn(job, itemId, patch.revision)
   const before = referencedAssets(job)
-  const allowed = new Set(['revision', 'title', 'author', 'publishedAt', 'sourceUrl', 'bodyMarkdown', 'coverImage', 'acknowledgeMetadata', 'acceptAsNew'])
+  const allowed = new Set(['revision', 'title', 'author', 'publishedAt', 'sourceUrl', 'bodyMarkdown', 'coverImage', 'acknowledgeMetadata'])
   if (Object.keys(patch).some((key) => !allowed.has(key))) throw new Error('包含不支持的文章字段')
   const updated = { ...item }
   for (const field of ['title', 'author', 'sourceUrl', 'bodyMarkdown']) if (Object.hasOwn(patch, field)) updated[field] = String(patch[field] || '').trim()
   if (Buffer.byteLength(updated.bodyMarkdown || '') > limits.fileBytes) throw new Error('编辑后的正文不能超过 1MB')
   if ((updated.title || '').length > 500 || (updated.author || '').length > 200) throw new Error('标题或账号过长')
   if (Object.hasOwn(patch, 'publishedAt')) updated.publishedAt = parseDocumentDate(patch.publishedAt)
+  applyMetadataDefaults(updated)
+  const editedNotices = new Set(updated.metadataNotices || [])
+  if (Object.hasOwn(patch, 'author') && String(patch.author || '').trim()) editedNotices.delete('author')
+  if (Object.hasOwn(patch, 'publishedAt') && parseDocumentDate(patch.publishedAt)) editedNotices.delete('publishedAt')
+  updated.metadataNotices = [...editedNotices]
   const oldSlots = item.imageSlots || []
   if (Object.hasOwn(patch, 'coverImage')) {
     const coverId = patch.coverImage?.id
@@ -343,7 +384,14 @@ async function editDocumentItem(id, context, itemId, patch, dependencies = {}) {
   updated.issues = (item.issues || []).filter((issue) => !(Object.hasOwn(patch, issue.field) || (issue.field === 'metadata' && patch.acknowledgeMetadata === true)))
   if (Object.hasOwn(patch, 'title')) updated.needsTitleConfirmation = false
   if (Object.hasOwn(patch, 'sourceUrl')) Object.assign(updated, articleSource(updated.sourceUrl))
-  if (Object.hasOwn(patch, 'acceptAsNew')) updated.acceptAsNew = patch.acceptAsNew === true
+  if (Object.hasOwn(patch, 'bodyMarkdown')) {
+    updated._marketingPrepared = true
+    updated._cleanedBodyMarkdown = updated.bodyMarkdown
+    updated.restoredBodyMarkdown = updated.bodyMarkdown
+    updated.removedTailMarkdown = ''
+    updated.tailCleanup = { applied: false, categories: [], removedBlocks: 0 }
+    updated.restoreTail = false
+  }
   if (Object.hasOwn(patch, 'bodyMarkdown') || Object.hasOwn(patch, 'coverImage')) {
     updated.imageSlots = makeImageSlots(updated, oldSlots)
     if (updated.coverImage?.id) {
@@ -360,6 +408,25 @@ async function editDocumentItem(id, context, itemId, patch, dependencies = {}) {
   Object.assign(item, updated, { revision: item.revision + 1 })
   refreshDuplicates(job)
   job.items.forEach(refreshItem)
+  touch(job)
+  await cleanUnused(job, before, dependencies)
+  if (job.items.some((entry) => entry.status === 'pending')) enqueue(job, dependencies)
+  return documentView(job)
+}
+
+async function toggleDocumentCleanup(id, context, itemId, revision, dependencies = {}) {
+  const job = readDocumentJob(id, context)
+  ensureIdle(job)
+  const item = itemIn(job, itemId, revision)
+  if (!String(item.removedTailMarkdown || '').trim()) throw new Error('当前文章没有可恢复的清理内容')
+  const before = referencedAssets(job)
+  item.restoreTail = !item.restoreTail
+  item.bodyMarkdown = item.restoreTail
+    ? item.restoredBodyMarkdown
+    : (item._cleanedBodyMarkdown || item.bodyMarkdown)
+  item.imageSlots = makeImageSlots(item, item.imageSlots || [])
+  refreshItem(item)
+  item.revision++
   touch(job)
   await cleanUnused(job, before, dependencies)
   if (job.items.some((entry) => entry.status === 'pending')) enqueue(job, dependencies)
@@ -388,6 +455,9 @@ async function changeDocumentImage(id, context, itemId, body, dependencies = {})
       const image = collectMarkdownImages(item.bodyMarkdown)[slot.occurrence]
       if (!image) throw new Error('正文已变化，请刷新后处理图片')
       item.bodyMarkdown = replaceMarkdownImages(item.bodyMarkdown, [{ image, url: asset ? asset.mediumUrl || asset.originalUrl : null }])
+      const targetUrl = asset ? asset.mediumUrl || asset.originalUrl : null
+      item._cleanedBodyMarkdown = replaceTrackedImageReferences(item._cleanedBodyMarkdown, image.url, targetUrl)
+      item.restoredBodyMarkdown = replaceTrackedImageReferences(item.restoredBodyMarkdown, image.url, targetUrl)
     }
     const previous = [...item.imageSlots]
     if (asset) previous.push({ kind: slot.kind, url: asset.mediumUrl || asset.originalUrl, displayUrl: asset.mediumUrl || asset.originalUrl, assetId: asset.id, status: 'ready' })
@@ -436,6 +506,7 @@ async function publishDocumentJob(id, context, dependencies = {}) {
       const article = {
         id: job.id + '-' + item.id, label: '默认', title: item.title, author: item.author,
         bodyMarkdown: item.bodyMarkdown, publishedAt: item.publishedAt, sourceUrl: item.sourceUrl,
+        sourceType: 'document', sourceName: item.fileName,
         sourceIdentity: safeArticleSource(item.sourceUrl).sourceIdentity, importFingerprint: item.importFingerprint,
         coverImage: item.coverImage || null, bodyImageAssetIds: item.bodyImageAssetIds || [], likeCount: 0, favoriteCount: 0,
       }
@@ -468,7 +539,7 @@ async function abandonDocumentJob(id, context, dependencies = {}) {
   return { id, status: job.status }
 }
 
-module.exports = { limits, createDocumentJob, uploadDocumentChunk, startDocumentJob, getDocumentJob, listDocumentJobs, readDocumentJob, editDocumentItem, changeDocumentImage, removeDocumentItem, publishDocumentJob, abandonDocumentJob }
+module.exports = { limits, createDocumentJob, uploadDocumentChunk, startDocumentJob, getDocumentJob, listDocumentJobs, readDocumentJob, editDocumentItem, toggleDocumentCleanup, changeDocumentImage, removeDocumentItem, publishDocumentJob, abandonDocumentJob }
 module.exports.getExistingDocumentArticle = (itemId, context) => {
   checkContext(context)
   const item = existingArticles(context.poolId).find((item) => item.id === itemId)
