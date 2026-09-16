@@ -1,3 +1,4 @@
+const { createHash } = require('node:crypto')
 const { getImagesByIds } = require('../images/image.store')
 const { getDatabase } = require('../../lib/state-database')
 const { safeArticleSource, articleFingerprint, articleDeduplicationKeys } = require('./article-identity')
@@ -390,7 +391,7 @@ function getRandomDailyContent(poolId, contentTypes, excludeId = '', options = {
   return getContentItem(id, row.content_type, row.item_id)
 }
 
-const RANDOM_ARTICLE_MAX = 100
+const RANDOM_ARTICLE_MAX = 200
 const RANDOM_ARTICLE_PAGE_SIZE = 20
 
 function createRandomSeed() {
@@ -407,6 +408,11 @@ function stableRandomValue(seed, itemId) {
   return hash >>> 0
 }
 
+function stableRecommendationValue(seed, itemId) {
+  // Mix similar IDs thoroughly; 48 bits keep the rank an exact JS integer.
+  return createHash('sha256').update(`${seed}:${itemId}`).digest().readUIntBE(0, 6)
+}
+
 function getRandomArticleRankedIds(poolId, seed) {
   const id = ensureContentPool(poolId)
   const safeSeed = String(seed || '').trim() || createRandomSeed()
@@ -418,11 +424,16 @@ function getRandomArticleRankedIds(poolId, seed) {
   const signature = ids.join('\u0000')
   const cached = randomArticleOrderCache.get(cacheKey)
   const now = Date.now()
-  if (cached?.signature === signature && cached.expiresAt > now) return cached.ids
+  if (cached?.signature === signature && cached.expiresAt > now) {
+    randomArticleOrderCache.delete(cacheKey)
+    randomArticleOrderCache.set(cacheKey, cached)
+    return cached.ids
+  }
   const rankedIds = ids
-    .map((itemId) => ({ itemId, rank: stableRandomValue(safeSeed, itemId) }))
+    .map((itemId) => ({ itemId, rank: stableRecommendationValue(safeSeed, itemId) }))
     .sort((left, right) => left.rank - right.rank || left.itemId.localeCompare(right.itemId))
     .map((entry) => entry.itemId)
+  randomArticleOrderCache.delete(cacheKey)
   if (randomArticleOrderCache.size >= RANDOM_ARTICLE_ORDER_CACHE_MAX) {
     randomArticleOrderCache.delete(randomArticleOrderCache.keys().next().value)
   }
@@ -444,11 +455,10 @@ function getRandomArticlePage(poolId, excludeId = '', { page = 1, pageSize = RAN
     .filter((itemId) => itemId !== excludedId)
     .slice(0, RANDOM_ARTICLE_MAX)
   const offset = (safePage - 1) * safePageSize
+  const pageIds = ranked.slice(offset, offset + safePageSize)
+  const items = getContentItemsByIds(id, pageIds.map((sourceId) => ({ source: 'article', sourceId })))
   return {
-    items: ranked
-      .slice(offset, offset + safePageSize)
-      .map((itemId) => getContentItem(id, 'articles', itemId))
-      .filter(Boolean),
+    items: pageIds.map((itemId) => items.get(`article:${itemId}`)).filter(Boolean),
     total: ranked.length,
     page: safePage,
     pageSize: safePageSize,

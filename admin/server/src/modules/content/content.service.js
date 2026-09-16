@@ -250,7 +250,7 @@ function getPublicListRandomSeed(context = {}, poolId = '', type = '', page = 1)
   return seed
 }
 
-function getArticleRecommendationSeed(poolId = '') {
+function getArticleRecommendationWindowSeed(poolId = '') {
   const key = String(poolId || '').trim()
   const now = Date.now()
   const cached = articleRecommendationSeedCache.get(key)
@@ -470,10 +470,13 @@ function getArticleRecommendations(context = {}, contentId = '', options = {}) {
   const item = getContentItem(poolId, 'articles', contentId)
   if (!item) return null
   const requestedSeed = String(options.seed || '').trim()
+  // Share a cache window across users, but give each source article its own
+  // order. Continuation requests must reuse the returned seed unchanged.
+  const seed = requestedSeed || JSON.stringify([getArticleRecommendationWindowSeed(poolId), item.id])
   const page = getRandomArticlePage(poolId, item.id, {
     page: options.page,
     pageSize: Math.min(Number(options.pageSize) || RANDOM_ARTICLE_PAGE_SIZE, RANDOM_ARTICLE_PAGE_SIZE),
-    seed: requestedSeed || getArticleRecommendationSeed(poolId),
+    seed,
   })
   const recommendationItems = enrichMiniProgramContentItems(page.items, context, 'article')
   return {
