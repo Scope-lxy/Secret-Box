@@ -123,6 +123,8 @@ test('状态面板图片检查只统计当前内容池实际引用', async () =>
     const result = await getAdminPreflight()
     const imageCheck = result.checks.find((item) => item.label === '图片素材')
     assert.equal(imageCheck.message, '当前内容池未引用图片素材')
+    const poolCheck = result.checks.find((item) => item.label === '内容池绑定')
+    assert.equal(poolCheck.message, '当前绑定 图片回收内容池')
   } finally {
     global.fetch = previousFetch
   }

@@ -79,6 +79,12 @@ test('新建小程序补齐默认配置，后台面板可用且既有数据不�
   const newMiniProgram = created.data.miniPrograms.find((item) => item.id === 'mp-create-regression')
   assert.equal(created.data.currentMiniProgramId, newMiniProgram.id)
   assert.equal(newMiniProgram.config.ads.homeNative.placement, 'dailyContent')
+  assert.equal(newMiniProgram.config.ads.homeNative.adUnitId, '')
+  assert.equal(Object.values(newMiniProgram.config.ads).every((item) => item.adUnitId === ''), true)
+  assert.equal(newMiniProgram.config.mode, 'default')
+  assert.equal(newMiniProgram.config.dataMode, 'shared')
+  assert.equal(newMiniProgram.config.dailyContentTypes.audioEnabled, false)
+  assert.equal(newMiniProgram.config.limits.dailyContentLimit, 5)
   assert.equal(newMiniProgram.config.system.dailyContentButtonText, '打开今日手记')
   assert.equal(newMiniProgram.config.system.dailyContentAdIncompleteText, '完整观看广告后，即可打开手记')
   assert.equal(newMiniProgram.config.system.articleAdIncompleteText, '完整观看广告后，即可展开全文')
@@ -121,6 +127,21 @@ test('新建小程序补齐默认配置，后台面板可用且既有数据不�
   assert.deepEqual(settingsAfter.data.storage, settingsBefore.data.storage)
   assert.deepEqual(settingsAfter.data.security, settingsBefore.data.security)
   assert.deepEqual(contentAfter.data, contentBefore.data)
+
+  const sequenceSave = await request('/api/admin/settings', {
+    method: 'POST',
+    cookie,
+    body: {
+      settings: {
+        contentPools: [
+          ...settingsAfter.data.contentPools,
+          { id: 'pool-7', name: '序号测试池' },
+        ],
+      },
+    },
+  })
+  assert.equal(sequenceSave.status, 200)
+  assert.equal(sequenceSave.data.nextContentPoolNumber, 8)
 
   const legacyDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'secretbox-admin-legacy-'))
   const legacySettings = structuredClone(settingsAfter.data)

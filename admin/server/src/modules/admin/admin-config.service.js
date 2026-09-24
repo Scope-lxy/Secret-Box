@@ -185,6 +185,7 @@ async function getAdminPreflight() {
   const currentMiniProgram = requireCurrentMiniProgram(settings)
   const currentMiniProgramId = currentMiniProgram.id
   const runtimeConfig = getMiniProgramRuntimeConfig({ miniProgramId: currentMiniProgramId })
+  const currentContentPool = settings.contentPools.find((item) => item.id === runtimeConfig.contentPoolId)
   const storage = settings.storage || {}
   const imageUrlPrefixes = getSupportedMediaPrefixes(storage, 'image')
   const audioUrlPrefixes = getSupportedMediaPrefixes(storage, 'audio')
@@ -230,7 +231,7 @@ async function getAdminPreflight() {
   const checks = [
     makeCheck('微信凭据', wechatConnection.ok ? 'pass' : 'fail', wechatConnection.message),
     makeCheck('开发者邮箱', currentMiniProgram?.developerEmail ? 'pass' : 'fail', currentMiniProgram?.developerEmail ? currentMiniProgram.developerEmail : '请在小程序设置中填写开发者联系邮箱'),
-    makeCheck('内容池绑定', runtimeConfig.contentPoolId ? 'pass' : 'fail', runtimeConfig.contentPoolId ? `当前绑定 ${runtimeConfig.contentPoolId}` : '当前小程序未绑定内容池'),
+    makeCheck('内容池绑定', runtimeConfig.contentPoolId ? 'pass' : 'fail', runtimeConfig.contentPoolId ? `当前绑定 ${currentContentPool?.name || '内容池'}` : '当前小程序未绑定内容池'),
     makeCheck('发布通道', uploadReadiness.ok ? 'pass' : 'fail', uploadReadiness.message),
     makeCheck('COS配置', cosConnection.ok ? 'pass' : 'fail', cosConnection.ok ? `${settings.storage.bucket} · ${settings.storage.region}，连接与 CORS 正常` : cosConnection.message),
     makeCheck('手记内容', contentSummary.contentTexts + contentSummary.contentAlbums + contentSummary.contentAudios ? 'pass' : 'fail', contentSummary.contentTexts + contentSummary.contentAlbums + contentSummary.contentAudios ? `已有 ${contentSummary.contentTexts + contentSummary.contentAlbums + contentSummary.contentAudios} 条手记内容` : '当前内容池没有手记内容'),

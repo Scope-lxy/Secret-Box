@@ -191,6 +191,7 @@ const defaultSettings = {
       createdAt: '2026-06-28T10:00:00.000Z',
     },
   ],
+  nextContentPoolNumber: 1,
   shareSettings: defaultShareSettings,
   miniPrograms: [
     {
@@ -262,6 +263,17 @@ function normalizeContentPool(item, index = 0) {
     remark: compactString(item?.remark, ''),
     createdAt: compactString(item?.createdAt, new Date().toISOString()),
   }
+}
+
+function normalizeNextContentPoolNumber(contentPools, value) {
+  // Keep the counter above all numeric IDs so deleting a pool never reuses its data namespace.
+  const requested = normalizeRange(value, 1, 1, Number.MAX_SAFE_INTEGER)
+  const highestExisting = contentPools.reduce((highest, item) => {
+    const match = /^pool-(\d+)$/.exec(item.id)
+    const number = match ? Number(match[1]) : 0
+    return Number.isSafeInteger(number) ? Math.max(highest, number) : highest
+  }, 0)
+  return Math.max(requested, highestExisting + 1)
 }
 
 function normalizeMiniProgram(item, index = 0, existing = {}) {
@@ -648,6 +660,10 @@ function normalizeSettings(input = {}, existing = defaultSettings) {
   const contentPools = Array.isArray(saved.contentPools) && saved.contentPools.length
     ? saved.contentPools.slice(0, 20).map(normalizeContentPool)
     : clone(base.contentPools)
+  const nextContentPoolNumber = normalizeNextContentPoolNumber(
+    contentPools,
+    saved.nextContentPoolNumber ?? previous.nextContentPoolNumber ?? base.nextContentPoolNumber,
+  )
   const validPoolIds = new Set(contentPools.map((item) => item.id))
   const groups = [...new Set((Array.isArray(saved.groups) ? saved.groups : (previous.groups || base.groups))
     .map((item) => compactString(typeof item === 'string' ? item : item?.name, ''))
@@ -678,6 +694,7 @@ function normalizeSettings(input = {}, existing = defaultSettings) {
   return {
     currentMiniProgramId,
     contentPools,
+    nextContentPoolNumber,
     groups,
     shareSettings,
     miniPrograms,

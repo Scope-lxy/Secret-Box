@@ -3724,6 +3724,13 @@ function makeMiniProgramId(name) {
   return `${baseId}-${suffix}`
 }
 
+function makeContentPoolId() {
+  const ids = new Set((adminSettingsState.contentPools || []).map((item) => item.id))
+  let number = Math.max(1, Number(adminSettingsState.nextContentPoolNumber) || 1)
+  while (ids.has(`pool-${number}`)) number += 1
+  return `pool-${number}`
+}
+
 async function createContentPool() {
   const name = nodes.newPoolName?.value.trim()
   if (!name) {
@@ -3738,7 +3745,7 @@ async function createContentPool() {
   const contentPools = [
     ...adminSettingsState.contentPools,
     {
-      id: makeEntityId('pool', name),
+      id: makeContentPoolId(),
       name,
       remark: nodes.newPoolRemark?.value.trim() || '',
       createdAt: new Date().toISOString(),
@@ -4266,6 +4273,10 @@ async function createMiniProgram() {
       miniProgram: next,
       meta: { type: '小程序管理', target: name, description: `已接入小程序「${name}」` },
     })
+    // Creating an instance changes the selected context. Reload the editor
+    // before any mode/config save can read the previous instance's state.
+    syncEditingContentPoolToCurrentMiniProgram()
+    await loadContentEditor()
     ;[nodes.newMpName, nodes.newMpAppId, nodes.newMpAppSecret, nodes.newMpDeveloperEmail, nodes.newMpRemark].forEach((field) => {
       if (field) field.value = ''
     })

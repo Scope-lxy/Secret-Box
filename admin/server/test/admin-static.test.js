@@ -679,6 +679,28 @@ test('admin edits a mini program by internal record id before opening settings',
   assert.match(routesSource, /setCurrentMiniProgram\(body\.id\)/)
 })
 
+test('creating a mini program reloads the selected editor before later config saves', () => {
+  const script = fs.readFileSync(path.resolve(__dirname, '../admin/src/main.js'), 'utf8')
+  const start = script.indexOf('async function createMiniProgram()')
+  const end = script.indexOf('async function reorderMiniProgram', start)
+  assert.ok(start >= 0 && end > start)
+  const source = script.slice(start, end)
+  assert.match(source, /await saveMiniProgramRequest\('\/api\/admin\/miniprogram\/create'/)
+  assert.match(source, /syncEditingContentPoolToCurrentMiniProgram\(\)[\s\S]*await loadContentEditor\(\)/)
+})
+
+test('new content pools use monotonic name-independent ASCII ids', () => {
+  const script = fs.readFileSync(path.resolve(__dirname, '../admin/src/main.js'), 'utf8')
+  const start = script.indexOf('function makeContentPoolId()')
+  const end = script.indexOf('async function createContentPool()', start)
+  assert.ok(start >= 0 && end > start)
+  const source = script.slice(start, end)
+  assert.match(source, /nextContentPoolNumber/)
+  assert.match(source, /return `pool-\$\{number\}`/)
+  assert.match(script, /id: makeContentPoolId\(\)/)
+  assert.doesNotMatch(script, /id:\s*makeEntityId\('pool'/)
+})
+
 test('admin groups home ads and exposes per-placement fallback controls', () => {
   const script = fs.readFileSync(path.resolve(__dirname, '../admin/src/main.js'), 'utf8')
   const styles = fs.readFileSync(path.resolve(__dirname, '../admin/src/styles.css'), 'utf8')
